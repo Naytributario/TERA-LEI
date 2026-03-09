@@ -59,7 +59,26 @@ function hierarquia(ds){const ctx={};const trilha={TÍTULO:"",CAPÍTULO:"",SEÇ�
   for(const d of ds){if(DIV.has(d.tipo)){trilha[d.tipo]=d.rub||d.id;const i=niv.indexOf(d.tipo);for(let j=i+1;j<niv.length;j++)trilha[niv[j]]="";}
     if(d.tipo==="ARTIGO")ctx[d.id]=Object.values(trilha).filter(Boolean).join(" > ");}return ctx;}
 
-async function pdfToText(f){const ab=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ab}).promise;let t="";for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n";}return t;}
+async function pdfToText(f){const ab=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ab}).promise;let fullText="";
+  for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();
+    // Sort items by Y (descending=top first) then X (left to right)
+    const items=c.items.filter(x=>x.str.trim()).sort((a,b)=>{const dy=b.transform[5]-a.transform[5];return Math.abs(dy)>3?dy:a.transform[4]-b.transform[4];});
+    let lastY=null;let line="";
+    for(const item of items){const y=Math.round(item.transform[5]);
+      if(lastY!==null&&Math.abs(y-lastY)>3){fullText+=line.trim()+"\n";line="";}
+      line+=(line?" ":"")+item.str;lastY=y;}
+    if(line.trim())fullText+=line.trim()+"\n";}
+  // Post-process: force line breaks before structural patterns that may have been merged
+  fullText=fullText.replace(/([.;:)\]]) *(Art\.\s*\d)/g,"$1\n$2");
+  fullText=fullText.replace(/([.;:)\]]) *(§\s*\d)/g,"$1\n$2");
+  fullText=fullText.replace(/([.;:)\]]) *(Parágrafo único)/gi,"$1\n$2");
+  fullText=fullText.replace(/ (TÍTULO\s+[IVXLCDM])/g,"\n$1");
+  fullText=fullText.replace(/ (CAPÍTULO\s+[IVXLCDM])/g,"\n$1");
+  fullText=fullText.replace(/ (Seção\s+[IVXLCDM])/gi,"\n$1");
+  fullText=fullText.replace(/ (Subseção\s+[IVXLCDM])/gi,"\n$1");
+  fullText=fullText.replace(/ (PARTE\s+(?:GERAL|ESPECIAL|[IVXLCDM]))/g,"\n$1");
+  fullText=fullText.replace(/ (LIVRO\s+[IVXLCDM])/g,"\n$1");
+  return fullText;}
 function LS(k,v){if(v===undefined){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null}catch{return null}}try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 
 const Ic=({d,s=16,c="currentColor"})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
@@ -150,9 +169,9 @@ function TabTexto({ds,lei,gSt,uSt}){const [srch,setSrch]=useState("");const fd=u
           {d.rub&&<i style={{opacity:.7}}>{d.rub} </i>}{d.txt}
           {nt&&<div style={{marginTop:3,padding:"2px 6px",background:"#F5EDDF",borderLeft:"2px solid #B8965A",borderRadius:3,fontSize:10,color:"#8C6D3F"}}>{nt}</div>}
         </div>
-        {!isD&&<div style={{minWidth:80,padding:"5px 4px",display:"flex",flexDirection:"column",gap:2}}>
+        {!isD&&<div style={{minWidth:100,padding:"5px 4px",display:"flex",flexDirection:"column",gap:3}}>
           <select value={st} onChange={e=>uSt(lei.id,ri,"status",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,color:sC[st]||"#8A8279",padding:"2px",fontSize:9,cursor:"pointer"}}>{sts.map(s=><option key={s} value={s}>{s||"Status"}</option>)}</select>
-          <input placeholder="Nota" defaultValue={nt} onBlur={e=>uSt(lei.id,ri,"note",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,padding:"2px 3px",fontSize:9}}/>
+          <input placeholder="Anotação..." defaultValue={nt} onBlur={e=>uSt(lei.id,ri,"note",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,padding:"3px 4px",fontSize:10,width:"100%"}}/>
         </div>}
       </div>;})}</div></div>;
 }
@@ -170,7 +189,7 @@ function TabEstudo({ds,lei,gSt,uSt}){const ctx=useMemo(()=>hierarquia(ds),[ds]);
     <td style={{fontSize:10,color:"#8A8279",maxWidth:160}}>{r.loc}</td><td style={{fontFamily:"'DM Mono',monospace",color:"#B8965A",fontSize:11}}>{r.art}</td><td style={{fontSize:10}}>{r.d.id}</td><td style={{maxWidth:350,fontSize:12}}>{r.d.txt}</td>
     <td><select value={gSt(lei.id,r.i,"status")} onChange={e=>uSt(lei.id,r.i,"status",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:10,color:sC[gSt(lei.id,r.i,"status")]||"#8A8279",background:"#F5EDDF"}}>{sts.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
     <td><select value={gSt(lei.id,r.i,"dif")} onChange={e=>uSt(lei.id,r.i,"dif",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:10,color:dC[gSt(lei.id,r.i,"dif")]||"#8A8279",background:"#F5EDDF"}}>{difs.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
-    <td><input defaultValue={gSt(lei.id,r.i,"note")} onBlur={e=>uSt(lei.id,r.i,"note",e.target.value)} placeholder="..." style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px 4px",fontSize:10,width:120,background:"#FFFDE7"}}/></td>
+    <td><input defaultValue={gSt(lei.id,r.i,"note")} onBlur={e=>uSt(lei.id,r.i,"note",e.target.value)} placeholder="Suas anotações aqui..." style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"4px 6px",fontSize:11,width:"100%",minWidth:200,background:"#FFFDE7"}}/></td>
   </tr>)}</tbody></table></div>;
 }
 
