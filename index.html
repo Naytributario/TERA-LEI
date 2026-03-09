@@ -297,6 +297,7 @@ function TabAnexos({lei,addAnexo,delAnexo}){const [uping,setUp]=useState(false);
     for(let i=0;i<files.length;i++){await addAnexo(lei.id,files[i]);}
     setUp(false);if(fRef.current)fRef.current.value="";};
   const rmAnx=(idx)=>{if(confirm("Excluir este anexo?")){delAnexo(lei.id,idx);if(selAnx===idx)setSelAnx(null);else if(selAnx>idx)setSelAnx(selAnx-1);}};
+  const loadIN2121=()=>{if(!window.__teraAddRaw)return alert("Recarregue a página.");const existing=new Set((lei.anexos||[]).map(a=>a.nome));const pending=(ANEXOS_IN2121||[]).filter(a=>!existing.has(a.nome));if(!pending.length)return alert("Todos os 29 anexos já estão carregados.");if(!confirm("Carregar "+pending.length+" anexo(s) da IN RFB nº 2.121/2022?"))return;setUp(true);for(const a of pending)window.__teraAddRaw(lei.id,{nome:a.nome,titulo:a.titulo,data:"16/01/2025",ds:a.ds,nD:a.ds.length});setUp(false);};
   const anexos=lei.anexos||[];
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
