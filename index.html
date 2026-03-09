@@ -24,7 +24,7 @@
 .stab{background:none;border:none;padding:8px 14px;cursor:pointer;font-size:12px;font-family:'DM Mono',monospace;color:#8A8279;border-bottom:2px solid transparent;transition:all .12s}
 .stab:hover{color:#2D2A26}.stab.on{color:#8C6D3F;border-bottom-color:#B8965A;font-weight:600}
 input,select,textarea{font-family:inherit}
-table.dt{width:100%;border-collapse:collapse;font-size:12px}table.dt th{background:#B8965A;color:#fff;padding:8px 10px;text-align:left;font-weight:600;position:sticky;top:0}
+table.dt{width:100%;border-collapse:collapse;font-size:13px}table.dt th{background:#B8965A;color:#fff;padding:8px 10px;text-align:left;font-weight:600;position:sticky;top:0}
 table.dt td{padding:7px 10px;border-bottom:1px solid #F0E9DE}table.dt tr:hover{background:#F5EDDF}
 .badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace}
 </style>
@@ -112,18 +112,18 @@ function App(){
     <header style={{background:"#fff",borderBottom:"1px solid #E8DFD0",padding:"8px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:34,height:34,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",fontWeight:700,fontSize:14,fontFamily:"'DM Mono',monospace",color:"#fff"}}>T</div>
-        <div><div style={{fontSize:15,fontWeight:700,letterSpacing:"1px",fontFamily:"'DM Mono',monospace"}}>TERA</div><div style={{fontSize:9,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>RACIOCÍNIO JURÍDICO</div></div>
+        <div><div style={{fontSize:15,fontWeight:700,letterSpacing:"1px",fontFamily:"'DM Mono',monospace"}}>TERA</div><div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>RACIOCÍNIO JURÍDICO</div></div>
       </div>
       <nav style={{display:"flex",gap:2,overflowX:"auto"}}>{nav.map(n=><button key={n.id} className={`nb ${vw===n.id?"on":""}`} onClick={()=>setVw(n.id)}><Ic d={n.ic} s={14} c={vw===n.id?"#8C6D3F":"#8A8279"}/>{n.lb}</button>)}</nav>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
-        <a href="https://www.planalto.gov.br" target="_blank" style={{fontSize:11,color:"#8A8279",textDecoration:"none",padding:"5px 8px",border:"1px solid #E8DFD0",borderRadius:5,display:"flex",alignItems:"center",gap:3}}><Ic d={IC.lk} s={11} c="#8A8279"/>Fontes</a>
+        <a href="https://www.planalto.gov.br" target="_blank" style={{fontSize:12,color:"#8A8279",textDecoration:"none",padding:"5px 8px",border:"1px solid #E8DFD0",borderRadius:5,display:"flex",alignItems:"center",gap:3}}><Ic d={IC.lk} s={11} c="#8A8279"/>Fontes</a>
         <select value={area} onChange={e=>setArea(e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,color:"#2D2A26",padding:"5px 8px",fontSize:11}}>{Object.entries(AREAS).map(([k,v])=><option key={k} value={k}>{v.nome}</option>)}</select>
       </div>
     </header>
     <main style={{maxWidth:1440,margin:"0 auto",padding:"20px"}}>
       {vw==="library"&&<Lib lib={lib} sel={sel} onSel={l=>{setSel(l);setVw("reader");}} onDel={del} onUp={upF} uping={uping} fRef={fRef}/>}
       {vw==="reader"&&sel&&<Reader lei={sel} area={area} gSt={gSt} uSt={uSt} apiKey={apiKey} saveKey={saveKey} addAnexo={addAnexo} study={study}/>}
-      {vw==="reforma"&&<Ref/>}
+      {vw==="reforma"&&<Ref apiKey={apiKey} saveKey={saveKey}/>}
       {vw==="atualizacoes"&&<Atl apiKey={apiKey} saveKey={saveKey}/>}
     </main>
   </div>;
@@ -133,19 +133,19 @@ function App(){
 function Lib({lib,sel,onSel,onDel,onUp,uping,fRef}){return <div className="fade">
   <div style={{border:"2px dashed #E8DFD0",borderRadius:14,padding:"40px 28px",textAlign:"center",marginBottom:24,background:"#F3EDE4"}}>
     {uping?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}><Sp/><span style={{color:"#5C554A",fontSize:14}}>Processando PDF e extraindo estrutura...</span></div>
-    :<><Ic d={IC.up} s={26} c="#B8965A"/><div style={{marginTop:8,fontSize:17,fontWeight:600}}>Adicionar Lei</div><div style={{color:"#8A8279",fontSize:13,marginTop:3,marginBottom:12}}>O parser LC 95/1998 roda local — sem gastar IA</div>
-      <label style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 24px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600}}><Ic d={IC.up} s={14} c="#fff"/>Selecionar PDF<input ref={fRef} type="file" accept=".pdf" onChange={onUp} style={{display:"none"}}/></label></>}
+    :<><Ic d={IC.up} s={26} c="#B8965A"/><div style={{marginTop:8,fontSize:17,fontWeight:600}}>Adicionar Lei</div><div style={{color:"#8A8279",fontSize:14,marginTop:3,marginBottom:12}}>O parser LC 95/1998 roda local — sem gastar IA</div>
+      <label style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 24px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",borderRadius:7,cursor:"pointer",fontSize:14,fontWeight:600}}><Ic d={IC.up} s={14} c="#fff"/>Selecionar PDF<input ref={fRef} type="file" accept=".pdf" onChange={onUp} style={{display:"none"}}/></label></>}
   </div>
   {lib.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:10}}>{lib.map(l=><div key={l.id} className="cd" style={{padding:14,cursor:"pointer",borderColor:sel?.id===l.id?"#B8965A":"#E8DFD0"}} onClick={()=>onSel(l)}>
     <div style={{display:"flex",justifyContent:"space-between"}}><div><div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{l.nome}</div><span className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{AREAS[l.area]?.nome||l.area}</span></div>
     <button onClick={e=>{e.stopPropagation();onDel(l.id);}} style={{background:"none",border:"none",color:"#8A8279",cursor:"pointer"}}><Ic d={IC.tr} s={13} c="#8A8279"/></button></div>
-    <div style={{display:"flex",gap:10,marginTop:8,fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}><span>{l.nA} artigos</span><span>{l.nD} dispositivos</span><span>{l.data}</span></div>
+    <div style={{display:"flex",gap:10,marginTop:8,fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}><span>{l.nA} artigos</span><span>{l.nD} dispositivos</span><span>{l.data}</span></div>
   </div>)}</div>}
 </div>;}
 
 // ═══ READER (with sub-tabs matching Excel) ═══
 function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,study}){
-  const [tab,setTab]=useState("texto");const [saved,setSaved]=useState(false);
+  const [tab,setTab]=useState("texto");const [saved,setSaved]=useState(false);const [goSearch,setGoSearch]=useState("");
   const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"anexos",lb:`Anexos (${(lei.anexos||[]).length})`},{id:"tutor",lb:"Tutor IA"}];
   const ds=lei.ds;
   const showSaved=()=>{setSaved(true);setTimeout(()=>setSaved(false),1500);};
@@ -174,20 +174,20 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,study}){
     XLSX.writeFile(wb,lei.nome+"_TERA.xlsx");};
   return <div className="fade">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-      <div><h2 style={{fontSize:17,fontWeight:700}}>{lei.nome}</h2><div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{lei.nD} dispositivos · {lei.nA} artigos · {(lei.anexos||[]).length} anexos · {AREAS[area]?.nome}</div></div>
+      <div><h2 style={{fontSize:17,fontWeight:700}}>{lei.nome}</h2><div style={{fontSize:12,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{lei.nD} dispositivos · {lei.nA} artigos · {(lei.anexos||[]).length} anexos · {AREAS[area]?.nome}</div></div>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
-        {saved&&<span style={{fontSize:11,color:"#27AE60",fontWeight:600,animation:"fadeIn .2s"}}>Salvo!</span>}
-        <button onClick={exportXlsx} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 14px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar Excel</button>
+        {saved&&<span style={{fontSize:12,color:"#27AE60",fontWeight:600,animation:"fadeIn .2s"}}>Salvo!</span>}
+        <button onClick={exportXlsx} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 14px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar Excel</button>
       </div>
     </div>
     <div style={{display:"flex",gap:0,borderBottom:"1px solid #E8DFD0",marginBottom:14,overflowX:"auto"}}>{tabs.map(t=><button key={t.id} className={`stab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.lb}</button>)}</div>
     {tab==="sumario"&&<TabSumario ds={ds}/>}
-    {tab==="texto"&&<TabTexto ds={ds} lei={lei} gSt={gSt} uSt={wrappedUSt}/>}
+    {tab==="texto"&&<TabTexto ds={ds} lei={lei} gSt={gSt} uSt={wrappedUSt} initialSearch={goSearch}/>}
     {tab==="artigos"&&<TabArtigos ds={ds}/>}
     {tab==="estudo"&&<TabEstudo ds={ds} lei={lei} gSt={gSt} uSt={wrappedUSt}/>}
     {tab==="remissoes"&&<TabRemissoes ds={ds}/>}
     {tab==="prazos"&&<TabPrazos ds={ds}/>}
-    {tab==="indice"&&<TabIndice ds={ds} area={area}/>}
+    {tab==="indice"&&<TabIndice ds={ds} area={area} onGoToArt={a=>{setGoSearch(a);setTab("texto");}}/>}
     {tab==="mapa"&&<TabMapa ds={ds}/>}
     {tab==="anexos"&&<TabAnexos lei={lei} addAnexo={addAnexo}/>}
     {tab==="tutor"&&<TabTutor lei={lei} area={area} apiKey={apiKey} saveKey={saveKey}/>}
@@ -196,7 +196,7 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,study}){
 
 function TabSumario({ds}){const items=ds.filter(d=>DIV.has(d.tipo));return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Identificador</th><th>Rubrica</th></tr></thead><tbody>{items.map((d,i)=><tr key={i} style={{background:CT[d.tipo]||"#fff",color:d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#2D2A26"}}><td>{i+1}</td><td><span className="badge" style={{background:"rgba(0,0,0,.15)",color:"inherit"}}>{d.tipo}</span></td><td style={{fontWeight:700}}>{d.id}</td><td>{d.rub}</td></tr>)}</tbody></table></div>;}
 
-function TabTexto({ds,lei,gSt,uSt}){const [srch,setSrch]=useState("");const fd=useMemo(()=>srch?ds.filter(d=>(d.txt+d.id+d.rub).toLowerCase().includes(srch.toLowerCase())):ds,[ds,srch]);
+function TabTexto({ds,lei,gSt,uSt,initialSearch}){const [srch,setSrch]=useState(initialSearch||"");useEffect(()=>{if(initialSearch)setSrch(initialSearch);},[initialSearch]);const fd=useMemo(()=>srch?ds.filter(d=>(d.txt+d.id+d.rub).toLowerCase().includes(srch.toLowerCase())):ds,[ds,srch]);
   const ind={TÍTULO:0,CAPÍTULO:12,SEÇÃO:24,SUBSEÇÃO:36,ARTIGO:0,PARÁGRAFO:20,INCISO:36,ALÍNEA:52,ITEM:68};
   const sts=["","Não lido","Lido","Revisando","Dominado","Dúvida"];const sC={Dominado:"#27AE60",Dúvida:"#C0392B",Revisando:"#D4A017",Lido:"#2E86AB"};
   return <div><div style={{marginBottom:10}}><input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="Buscar na lei..." style={{width:"100%",background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 12px",fontSize:13}}/></div>
@@ -204,13 +204,13 @@ function TabTexto({ds,lei,gSt,uSt}){const [srch,setSrch]=useState("");const fd=u
       return <div key={ri} style={{display:"flex",borderBottom:"1px solid #F0E9DE",background:isD?CT[d.tipo]||"#F5EDDF":ri%2===0?"#fff":"#FAF7F2",paddingLeft:ind[d.tipo]||0}}>
         <div style={{minWidth:70,padding:"6px 4px",textAlign:"center"}}><span className="badge" style={{background:isD?"rgba(0,0,0,.1)":"#F3EDE4",color:isD?(d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#5C554A"):"#8A8279"}}>{d.tipo}</span></div>
         <div style={{flex:1,padding:"6px 8px",fontSize:12.5,lineHeight:1.6,color:isD?(d.tipo==="TÍTULO"?"#fff":"#2D2A26"):"#2D2A26",fontWeight:isD||d.tipo==="ARTIGO"?600:400}}>
-          <span style={{color:isD?"inherit":"#B8965A",fontFamily:"'DM Mono',monospace",fontSize:11,marginRight:4}}>{d.id}</span>
+          <span style={{color:isD?"inherit":"#B8965A",fontFamily:"'DM Mono',monospace",fontSize:12,marginRight:4}}>{d.id}</span>
           {d.rub&&<i style={{opacity:.7}}>{d.rub} </i>}{d.txt}
-          {nt&&<div style={{marginTop:3,padding:"2px 6px",background:"#F5EDDF",borderLeft:"2px solid #B8965A",borderRadius:3,fontSize:10,color:"#8C6D3F"}}>{nt}</div>}
+          {nt&&<div style={{marginTop:3,padding:"2px 6px",background:"#F5EDDF",borderLeft:"2px solid #B8965A",borderRadius:3,fontSize:11,color:"#8C6D3F"}}>{nt}</div>}
         </div>
         {!isD&&<div style={{minWidth:100,padding:"5px 4px",display:"flex",flexDirection:"column",gap:3}}>
-          <select value={st} onChange={e=>uSt(lei.id,ri,"status",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,color:sC[st]||"#8A8279",padding:"2px",fontSize:9,cursor:"pointer"}}>{sts.map(s=><option key={s} value={s}>{s||"Status"}</option>)}</select>
-          <input placeholder="Anotação..." defaultValue={nt} onBlur={e=>uSt(lei.id,ri,"note",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,padding:"3px 4px",fontSize:10,width:"100%"}}/>
+          <select value={st} onChange={e=>uSt(lei.id,ri,"status",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,color:sC[st]||"#8A8279",padding:"2px",fontSize:11,cursor:"pointer"}}>{sts.map(s=><option key={s} value={s}>{s||"Status"}</option>)}</select>
+          <textarea placeholder="Anotação..." defaultValue={nt} onBlur={e=>uSt(lei.id,ri,"note",e.target.value)} style={{background:"#FFFDE7",border:"1px solid #E8DFD0",borderRadius:4,padding:"4px 6px",fontSize:12,width:"100%",minHeight:50,maxHeight:150,resize:"vertical",fontFamily:"inherit"}}/>
         </div>}
       </div>;})}</div></div>;
 }
@@ -225,31 +225,31 @@ function TabEstudo({ds,lei,gSt,uSt}){const ctx=useMemo(()=>hierarquia(ds),[ds]);
   const sts=["","Não lido","Lido","Revisando","Dominado","Dúvida"];const difs=["","Fácil","Médio","Difícil","Muito Difícil"];
   const sC={Dominado:"#27AE60",Dúvida:"#C0392B",Revisando:"#D4A017",Lido:"#2E86AB"};const dC={"Muito Difícil":"#C0392B",Difícil:"#D4A017"};
   return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>Localização</th><th>Art.</th><th>Dispositivo</th><th>Texto</th><th>Status</th><th>Dificuldade</th><th>Anotação</th></tr></thead><tbody>{rows.map(r=><tr key={r.i}>
-    <td style={{fontSize:10,color:"#8A8279",maxWidth:160}}>{r.loc}</td><td style={{fontFamily:"'DM Mono',monospace",color:"#B8965A",fontSize:11}}>{r.art}</td><td style={{fontSize:10}}>{r.d.id}</td><td style={{maxWidth:350,fontSize:12}}>{r.d.txt}</td>
-    <td><select value={gSt(lei.id,r.i,"status")} onChange={e=>uSt(lei.id,r.i,"status",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:10,color:sC[gSt(lei.id,r.i,"status")]||"#8A8279",background:"#F5EDDF"}}>{sts.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
-    <td><select value={gSt(lei.id,r.i,"dif")} onChange={e=>uSt(lei.id,r.i,"dif",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:10,color:dC[gSt(lei.id,r.i,"dif")]||"#8A8279",background:"#F5EDDF"}}>{difs.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
-    <td><input defaultValue={gSt(lei.id,r.i,"note")} onBlur={e=>uSt(lei.id,r.i,"note",e.target.value)} placeholder="Suas anotações aqui..." style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"4px 6px",fontSize:11,width:"100%",minWidth:200,background:"#FFFDE7"}}/></td>
+    <td style={{fontSize:11,color:"#8A8279",maxWidth:160}}>{r.loc}</td><td style={{fontFamily:"'DM Mono',monospace",color:"#B8965A",fontSize:11}}>{r.art}</td><td style={{fontSize:10}}>{r.d.id}</td><td style={{maxWidth:350,fontSize:12}}>{r.d.txt}</td>
+    <td><select value={gSt(lei.id,r.i,"status")} onChange={e=>uSt(lei.id,r.i,"status",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:11,color:sC[gSt(lei.id,r.i,"status")]||"#8A8279",background:"#F5EDDF"}}>{sts.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
+    <td><select value={gSt(lei.id,r.i,"dif")} onChange={e=>uSt(lei.id,r.i,"dif",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:11,color:dC[gSt(lei.id,r.i,"dif")]||"#8A8279",background:"#F5EDDF"}}>{difs.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
+    <td><textarea defaultValue={gSt(lei.id,r.i,"note")} onBlur={e=>uSt(lei.id,r.i,"note",e.target.value)} placeholder="Suas anotações aqui..." style={{border:"1px solid #E8DFD0",borderRadius:4,padding:"6px 8px",fontSize:13,width:"100%",minWidth:250,minHeight:70,maxHeight:200,background:"#FFFDE7",resize:"vertical",fontFamily:"inherit",lineHeight:1.5}}/></td>
   </tr>)}</tbody></table></div>;
 }
 
 function TabRemissoes({ds}){const rem=useMemo(()=>extrairRemissoes(ds),[ds]);const dest={};rem.forEach(r=>{dest[r.destino]=(dest[r.destino]||0)+1;});const top=Object.entries(dest).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  return <div><div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}><div className="cd" style={{padding:12}}><div style={{fontSize:11,color:"#8A8279"}}>Total</div><div style={{fontSize:22,fontWeight:700,color:"#B8965A"}}>{rem.length}</div></div>
-    {top.length>0&&<div className="cd" style={{padding:12,flex:1}}><div style={{fontSize:11,color:"#8A8279",marginBottom:4}}>Mais referenciados</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{top.map(([a,c])=><span key={a} className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{a} ({c}x)</span>)}</div></div>}</div>
-    <div style={{maxHeight:"60vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Origem</th><th>Dispositivo</th><th>Referencia</th><th>Contexto</th></tr></thead><tbody>{rem.map((r,i)=><tr key={i}><td>{i+1}</td><td style={{color:"#2E86AB",fontWeight:600}}>{r.origem}</td><td>{r.disp}</td><td style={{color:"#C0392B",fontWeight:600}}>{r.destino}</td><td style={{fontSize:11,color:"#5C554A",maxWidth:400}}>{r.ctx}</td></tr>)}</tbody></table></div></div>;
+  return <div><div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}><div className="cd" style={{padding:12}}><div style={{fontSize:12,color:"#8A8279"}}>Total</div><div style={{fontSize:22,fontWeight:700,color:"#B8965A"}}>{rem.length}</div></div>
+    {top.length>0&&<div className="cd" style={{padding:12,flex:1}}><div style={{fontSize:12,color:"#8A8279",marginBottom:4}}>Mais referenciados</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{top.map(([a,c])=><span key={a} className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{a} ({c}x)</span>)}</div></div>}</div>
+    <div style={{maxHeight:"60vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Origem</th><th>Dispositivo</th><th>Referencia</th><th>Contexto</th></tr></thead><tbody>{rem.map((r,i)=><tr key={i}><td>{i+1}</td><td style={{color:"#2E86AB",fontWeight:600}}>{r.origem}</td><td>{r.disp}</td><td style={{color:"#C0392B",fontWeight:600}}>{r.destino}</td><td style={{fontSize:12,color:"#5C554A",maxWidth:400}}>{r.ctx}</td></tr>)}</tbody></table></div></div>;
 }
 
 function TabPrazos({ds}){const items=useMemo(()=>extrairPrazosValores(ds),[ds]);const tc={"VALOR (R$)":"#27AE60","PERCENTUAL (%)":"#2E86AB","PRAZO":"#D4A017"};
-  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Conteúdo</th><th>Artigo</th><th>Capítulo</th><th>Contexto</th></tr></thead><tbody>{items.map((r,i)=><tr key={i}><td>{i+1}</td><td><span className="badge" style={{background:(tc[r.tipo]||"#8A8279")+"22",color:tc[r.tipo]}}>{r.tipo}</span></td><td style={{fontWeight:700,fontSize:13}}>{r.val}</td><td style={{fontFamily:"'DM Mono',monospace"}}>{r.art}</td><td style={{fontSize:11,color:"#8A8279"}}>{r.cap}</td><td style={{fontSize:11,color:"#5C554A",maxWidth:350}}>{r.ctx}</td></tr>)}</tbody></table></div>;
+  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Conteúdo</th><th>Artigo</th><th>Capítulo</th><th>Contexto</th></tr></thead><tbody>{items.map((r,i)=><tr key={i}><td>{i+1}</td><td><span className="badge" style={{background:(tc[r.tipo]||"#8A8279")+"22",color:tc[r.tipo]}}>{r.tipo}</span></td><td style={{fontWeight:700,fontSize:13}}>{r.val}</td><td style={{fontFamily:"'DM Mono',monospace"}}>{r.art}</td><td style={{fontSize:12,color:"#8A8279"}}>{r.cap}</td><td style={{fontSize:12,color:"#5C554A",maxWidth:350}}>{r.ctx}</td></tr>)}</tbody></table></div>;
 }
 
-function TabIndice({ds,area}){const [s,setS]=useState("");const idx=useMemo(()=>buildIdx(ds,area),[ds,area]);const en=Object.entries(idx).filter(([k])=>!s||k.toLowerCase().includes(s.toLowerCase()));
-  return <div><div style={{marginBottom:10}}><input value={s} onChange={e=>setS(e.target.value)} placeholder="Filtrar termos..." style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:6,padding:"7px 10px",fontSize:12,width:260}}/><span style={{marginLeft:10,fontSize:11,color:"#8A8279"}}>{en.length} termos · {AREAS[area]?.nome}</span></div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:8}}>{en.map(([p,arts])=><div key={p} className="cd" style={{padding:"10px 12px",display:"flex",justifyContent:"space-between"}}><div><div style={{fontWeight:600,fontSize:13,textTransform:"capitalize"}}>{p}</div><div style={{marginTop:3,display:"flex",flexWrap:"wrap",gap:3}}>{arts.map(a=><span key={a} className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{a}</span>)}</div></div><span style={{background:"#F5EDDF",color:"#8C6D3F",padding:"2px 7px",borderRadius:8,fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",height:"fit-content"}}>{arts.length}</span></div>)}</div></div>;
+function TabIndice({ds,area,onGoToArt}){const [s,setS]=useState("");const idx=useMemo(()=>buildIdx(ds,area),[ds,area]);const en=Object.entries(idx).filter(([k])=>!s||k.toLowerCase().includes(s.toLowerCase()));
+  return <div><div style={{marginBottom:12}}><input value={s} onChange={e=>setS(e.target.value)} placeholder="Filtrar termos..." style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 12px",fontSize:14,width:280}}/><span style={{marginLeft:12,fontSize:13,color:"#8A8279"}}>{en.length} termos · {AREAS[area]?.nome} · Clique no artigo para ver o texto</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(360px,1fr))",gap:10}}>{en.map(([p,arts])=><div key={p} className="cd" style={{padding:"14px 16px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><div style={{fontWeight:600,fontSize:15,textTransform:"capitalize"}}>{p}</div><span style={{background:"#F5EDDF",color:"#8C6D3F",padding:"3px 9px",borderRadius:8,fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{arts.length}</span></div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{arts.map(a=><button key={a} onClick={()=>onGoToArt&&onGoToArt(a)} className="tg" style={{background:"#F5EDDF",color:"#8C6D3F",cursor:"pointer",border:"1px solid #E8DFD0",fontSize:12,padding:"4px 10px",borderRadius:5,transition:"all .1s"}} onMouseEnter={e=>{e.target.style.background="#B8965A";e.target.style.color="#fff";}} onMouseLeave={e=>{e.target.style.background="#F5EDDF";e.target.style.color="#8C6D3F";}} title={"Ver "+a}>{a}</button>)}</div></div>)}</div></div>;
 }
 
 function TabMapa({ds}){const sym={TÍTULO:"■",CAPÍTULO:"●",SEÇÃO:"○",SUBSEÇÃO:"◦",ARTIGO:"├",PARÁGRAFO:"│§",INCISO:"│ ├",ALÍNEA:"│ │├",ITEM:"│ │ ├"};
   const ind={TÍTULO:0,CAPÍTULO:16,SEÇÃO:32,SUBSEÇÃO:48,ARTIGO:12,PARÁGRAFO:28,INCISO:44,ALÍNEA:60,ITEM:76};
-  return <div style={{maxHeight:"70vh",overflow:"auto",fontFamily:"'DM Mono',monospace",fontSize:12,lineHeight:1.8}}>{ds.map((d,i)=>{const isD=DIV.has(d.tipo);
+  return <div style={{maxHeight:"70vh",overflow:"auto",fontFamily:"'DM Mono',monospace",fontSize:14,lineHeight:1.8}}>{ds.map((d,i)=>{const isD=DIV.has(d.tipo);
     return <div key={i} style={{paddingLeft:ind[d.tipo]||0,background:isD?CT[d.tipo]||"transparent":"transparent",color:isD&&(d.tipo==="TÍTULO")?"#fff":"#2D2A26",fontWeight:isD?700:400,borderBottom:"1px solid #F0E9DE",padding:`3px 6px 3px ${ind[d.tipo]}px`}}>
       <span style={{opacity:.5}}>{sym[d.tipo]||"·"}</span> <span>{d.id}</span>{d.rub&&<span style={{fontStyle:"italic",marginLeft:6,opacity:.7}}>{d.rub}</span>}{d.txt&&!isD&&<span style={{color:"#5C554A",marginLeft:4,fontFamily:"'Crimson Pro',serif",fontWeight:400}}>{d.txt.slice(0,100)}{d.txt.length>100?"...":""}</span>}
     </div>;})}</div>;
@@ -262,24 +262,24 @@ function TabAnexos({lei,addAnexo}){const [uping,setUp]=useState(false);const [se
   const anexos=lei.anexos||[];
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-      <div style={{fontSize:13,color:"#5C554A"}}>{anexos.length} anexo(s) vinculado(s)</div>
-      <label style={{display:"inline-flex",alignItems:"center",gap:5,padding:"7px 16px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600}}>
+      <div style={{fontSize:14,color:"#5C554A"}}>{anexos.length} anexo(s) vinculado(s)</div>
+      <label style={{display:"inline-flex",alignItems:"center",gap:5,padding:"7px 16px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",borderRadius:6,cursor:"pointer",fontSize:14,fontWeight:600}}>
         {uping?<><Sp/> Processando...</>:<><Ic d={IC.up} s={13} c="#fff"/> Adicionar Anexo(s)</>}
         <input ref={fRef} type="file" accept=".pdf" multiple onChange={upAnx} style={{display:"none"}}/>
       </label>
     </div>
-    {anexos.length===0?<div style={{textAlign:"center",padding:40,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum anexo vinculado</div><div style={{fontSize:12,marginTop:4}}>Suba os PDFs dos anexos (ex: ANEXO I.pdf, ANEXO II.pdf)</div></div>
+    {anexos.length===0?<div style={{textAlign:"center",padding:40,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum anexo vinculado</div><div style={{fontSize:14,marginTop:4}}>Suba os PDFs dos anexos (ex: ANEXO I.pdf, ANEXO II.pdf)</div></div>
     :<div style={{display:"flex",gap:16}}>
       {/* Lista de anexos */}
       <div style={{minWidth:200,display:"flex",flexDirection:"column",gap:4}}>
         {anexos.map((a,i)=><div key={i} className="cd" style={{padding:"10px 12px",cursor:"pointer",borderColor:selAnx===i?"#B8965A":"#E8DFD0",background:selAnx===i?"#F5EDDF":"#fff"}} onClick={()=>setSelAnx(i)}>
           <div style={{fontWeight:600,fontSize:13}}>{a.nome}</div>
-          <div style={{fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginTop:2}}>{a.nD} itens · {a.data}</div>
+          <div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginTop:2}}>{a.nD} itens · {a.data}</div>
         </div>)}
       </div>
       {/* Conteúdo do anexo selecionado */}
       {selAnx!==null&&anexos[selAnx]&&<div style={{flex:1,maxHeight:"65vh",overflow:"auto",border:"1px solid #E8DFD0",borderRadius:8}}>
-        <div style={{padding:"8px 12px",background:"#F3EDE4",fontWeight:600,fontSize:13,position:"sticky",top:0}}>{anexos[selAnx].nome}</div>
+        <div style={{padding:"8px 12px",background:"#F3EDE4",fontWeight:600,fontSize:14,position:"sticky",top:0}}>{anexos[selAnx].nome}</div>
         <table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Id</th><th>Texto</th></tr></thead><tbody>{anexos[selAnx].ds.map((d,i)=>
           <tr key={i}><td>{i+1}</td><td><span className="badge" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{d.tipo||"TEXTO"}</span></td><td style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{d.id}</td><td style={{fontSize:12}}>{d.txt}{d.rub&&<i style={{opacity:.7}}> {d.rub}</i>}</td></tr>
         )}</tbody></table>
@@ -294,12 +294,12 @@ function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);c
   const send=async()=>{if(!inp.trim()||ld||!apiKey)return;const m=inp.trim();setInp("");setMsgs(p=>[...p,{role:"user",text:m}]);setLd(true);
     try{const h=msgs.map(x=>({role:x.role==="user"?"user":"assistant",content:x.text}));const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1024,system:`Você é o TERA Tutor — especialista em ${AREAS[area]?.nome} e neurociência.\nLEI: ${ctx.n} (${ctx.nA} art)\nESTRUTURA:\n${ctx.c}\nARTIGOS:\n${ctx.r}\n\nSeja preciso, cite artigos. Use recuperação ativa, espaçamento, elaboração. Português claro. Nunca invente dispositivos.`,messages:[...h,{role:"user",content:m}]})});
       const d=await r.json();setMsgs(p=>[...p,{role:"assistant",text:d.content?.map(c=>c.text||"").join("")||d.error?.message||"Erro."}]);}catch(e){setMsgs(p=>[...p,{role:"assistant",text:"Erro: "+e.message}]);}setLd(false);ir.current?.focus();};
-  if(!apiKey)return <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Chave API Anthropic</div><div style={{fontSize:12,color:"#5C554A",marginBottom:10}}>Necessária para o Tutor e Atualizações. Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a>. Salva apenas no seu navegador.</div>
-    <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 10px",fontSize:12,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div>;
+  if(!apiKey)return <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Chave API Anthropic</div><div style={{fontSize:14,color:"#5C554A",marginBottom:10}}>Necessária para o Tutor e Atualizações. Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a>. Salva apenas no seu navegador.</div>
+    <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 10px",fontSize:14,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"8px 18px",fontSize:14,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div>;
   return <div style={{display:"flex",flexDirection:"column",height:"60vh"}}>
     <div ref={cr} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,paddingBottom:8}}>
-      {msgs.length===0&&<div style={{textAlign:"center",padding:24,color:"#8A8279"}}><Ic d={IC.br} s={28} c="#D4B882"/><div style={{marginTop:8,fontSize:14,fontWeight:600,color:"#2D2A26"}}>Tutor IA — {lei.nome}</div><div style={{fontSize:12,marginTop:4}}>Pergunte sobre a lei ou peça estratégias de estudo</div></div>}
-      {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"78%",padding:"9px 13px",borderRadius:10,background:m.role==="user"?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:m.role==="user"?"none":"1px solid #E8DFD0",color:m.role==="user"?"#fff":"#2D2A26",fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div></div>)}
+      {msgs.length===0&&<div style={{textAlign:"center",padding:24,color:"#8A8279"}}><Ic d={IC.br} s={28} c="#D4B882"/><div style={{marginTop:8,fontSize:14,fontWeight:600,color:"#2D2A26"}}>Tutor IA — {lei.nome}</div><div style={{fontSize:14,marginTop:4}}>Pergunte sobre a lei ou peça estratégias de estudo</div></div>}
+      {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"78%",padding:"9px 13px",borderRadius:10,background:m.role==="user"?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:m.role==="user"?"none":"1px solid #E8DFD0",color:m.role==="user"?"#fff":"#2D2A26",fontSize:14,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div></div>)}
       {ld&&<div style={{display:"flex",gap:4,alignItems:"center",color:"#8A8279",fontSize:12}}><Sp/> Pensando...</div>}
     </div>
     <div style={{display:"flex",gap:6,paddingTop:10,borderTop:"1px solid #E8DFD0"}}><input ref={ir} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Pergunte sobre a lei..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:8,padding:"9px 12px",fontSize:13}}/><button onClick={send} disabled={ld||!inp.trim()} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",border:"none",borderRadius:8,color:"#fff",padding:"0 16px",cursor:"pointer"}}><Ic d={IC.sd} s={14} c="#fff"/></button></div>
@@ -307,12 +307,81 @@ function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);c
 }
 
 // ═══ REFORMA ═══
-function Ref(){const tc={EC:"#C0392B",LC:"#2E86AB",Fase:"#B8965A",Ref:"#8A8279"};const sc={Vigente:"#27AE60","Em vigor":"#27AE60",Futuro:"#8A8279",Link:"#2E86AB"};
-  return <div className="fade"><h2 style={{fontSize:19,fontWeight:700,marginBottom:4}}>Reforma Tributária</h2><div style={{fontSize:11,color:"#8A8279",marginBottom:14}}>EC 132/2023 · LC 214/2025 · LC 227/2026</div>
-    <div style={{display:"flex",gap:8,marginBottom:18,overflowX:"auto"}}>{[{a:"2026",l:"Teste",on:true},{a:"2027",l:"Extinção PIS/COFINS"},{a:"2029",l:"Redução ICMS/ISS"},{a:"2033",l:"Pleno"}].map(t=><div key={t.a} style={{minWidth:130,padding:"10px 12px",borderRadius:8,background:t.on?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:"1px solid "+(t.on?"#B8965A":"#E8DFD0"),color:t.on?"#fff":"#2D2A26"}}><div style={{fontSize:17,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{t.a}</div><div style={{fontSize:10,marginTop:2,opacity:.85}}>{t.l}</div></div>)}</div>
-    <div style={{display:"flex",flexDirection:"column",gap:6}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:"12px 16px",display:"flex",gap:12}}><span className="badge" style={{background:(tc[r.t]||"#8A8279")+"18",color:tc[r.t],minWidth:40,textAlign:"center",height:"fit-content",marginTop:2}}>{r.t}</span>
-      <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><b style={{fontSize:13}}>{r.n}</b>{r.dt&&<span style={{fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{r.dt}</span>}<span className="badge" style={{background:(sc[r.st]||"#8A8279")+"18",color:sc[r.st]}}>{r.st}</span></div>
-        <div style={{fontSize:12,color:"#5C554A",marginTop:2}}>{r.d}</div>{r.det&&<div style={{fontSize:11,color:"#8A8279",marginTop:3}}>{r.det}</div>}{r.url&&<a href={r.url} target="_blank" style={{fontSize:11,color:"#B8965A",marginTop:3,display:"inline-flex",alignItems:"center",gap:3,textDecoration:"none"}}><Ic d={IC.lk} s={10} c="#B8965A"/>Texto oficial</a>}</div></div>)}</div></div>;
+function Ref({apiKey,saveKey}){const [sub,setSub]=useState("leg");
+  const subs=[{id:"leg",lb:"Legislação"},{id:"timeline",lb:"Minha Timeline"},{id:"tutor",lb:"Tutor Reforma"}];
+  return <div className="fade"><h2 style={{fontSize:20,fontWeight:700,marginBottom:4}}>Reforma Tributária</h2><div style={{fontSize:13,color:"#8A8279",marginBottom:12}}>EC 132/2023 · LC 214/2025 · LC 227/2026</div>
+    <div style={{display:"flex",gap:0,borderBottom:"1px solid #E8DFD0",marginBottom:14}}>{subs.map(s=><button key={s.id} className={`stab ${sub===s.id?"on":""}`} onClick={()=>setSub(s.id)}>{s.lb}</button>)}</div>
+    {sub==="leg"&&<RefLeg/>}
+    {sub==="timeline"&&<RefTimeline/>}
+    {sub==="tutor"&&<RefTutor apiKey={apiKey} saveKey={saveKey}/>}
+  </div>;
+}
+function RefLeg(){const tc={EC:"#C0392B",LC:"#2E86AB",Fase:"#B8965A",Ref:"#8A8279"};const sc={Vigente:"#27AE60","Em vigor":"#27AE60",Futuro:"#8A8279",Link:"#2E86AB"};
+  return <div>
+    <div style={{display:"flex",gap:8,marginBottom:18,overflowX:"auto"}}>{[{a:"2026",l:"Teste",on:true},{a:"2027",l:"Extinção PIS/COFINS"},{a:"2029",l:"Redução ICMS/ISS"},{a:"2033",l:"Pleno"}].map(t=><div key={t.a} style={{minWidth:140,padding:"12px 14px",borderRadius:8,background:t.on?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:"1px solid "+(t.on?"#B8965A":"#E8DFD0"),color:t.on?"#fff":"#2D2A26"}}><div style={{fontSize:18,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{t.a}</div><div style={{fontSize:12,marginTop:2,opacity:.85}}>{t.l}</div></div>)}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:"14px 18px",display:"flex",gap:14}}><span className="badge" style={{background:(tc[r.t]||"#8A8279")+"18",color:tc[r.t],minWidth:42,textAlign:"center",height:"fit-content",marginTop:2,fontSize:12}}>{r.t}</span>
+      <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><b style={{fontSize:15}}>{r.n}</b>{r.dt&&<span style={{fontSize:12,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{r.dt}</span>}<span className="badge" style={{background:(sc[r.st]||"#8A8279")+"18",color:sc[r.st],fontSize:11}}>{r.st}</span></div>
+        <div style={{fontSize:14,color:"#5C554A",marginTop:3}}>{r.d}</div>{r.det&&<div style={{fontSize:13,color:"#8A8279",marginTop:4,lineHeight:1.5}}>{r.det}</div>}{r.url&&<a href={r.url} target="_blank" style={{fontSize:13,color:"#B8965A",marginTop:4,display:"inline-flex",alignItems:"center",gap:3,textDecoration:"none"}}><Ic d={IC.lk} s={12} c="#B8965A"/>Texto oficial</a>}</div></div>)}</div></div>;
+}
+function RefTimeline(){const [items,setItems]=useState(()=>LS("t3-reftl")||[]);const [tema,setTema]=useState("");const [data,setData]=useState("");const [nota,setNota]=useState("");const [pdfName,setPdfName]=useState("");const [pdfDs,setPdfDs]=useState(null);const fRef=useRef(null);
+  const addItem=()=>{if(!tema.trim())return;const it={id:Date.now(),tema:tema.trim(),data:data||new Date().toLocaleDateString("pt-BR"),nota,pdfName:pdfName||null,pdfDs:pdfDs||null,criado:new Date().toLocaleString("pt-BR")};const n=[it,...items];setItems(n);LS("t3-reftl",n);setTema("");setData("");setNota("");setPdfName("");setPdfDs(null);};
+  const delItem=id=>{const n=items.filter(i=>i.id!==id);setItems(n);LS("t3-reftl",n);};
+  const upPdf=async e=>{const f=e.target.files?.[0];if(!f)return;try{const t=await pdfToText(f);const ds=parse(t);setPdfName(f.name);setPdfDs(ds);}catch{alert("Erro no PDF");}};
+  const [viewPdf,setViewPdf]=useState(null);
+  return <div>
+    {/* Formulário */}
+    <div className="cd" style={{padding:18,marginBottom:20,background:"#F5EDDF",borderColor:"#D4B882"}}>
+      <div style={{fontWeight:700,fontSize:15,marginBottom:10}}>Nova Atualização na Timeline</div>
+      <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap"}}>
+        <input value={tema} onChange={e=>setTema(e.target.value)} placeholder="Tema da atualização..." style={{flex:2,minWidth:200,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"10px 12px",fontSize:14}}/>
+        <input value={data} onChange={e=>setData(e.target.value)} placeholder="dd/mm/aaaa" style={{width:130,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"10px 12px",fontSize:14}}/>
+      </div>
+      <textarea value={nota} onChange={e=>setNota(e.target.value)} placeholder="Suas anotações sobre esta atualização..." style={{width:"100%",minHeight:100,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"10px 12px",fontSize:14,resize:"vertical",fontFamily:"inherit",lineHeight:1.6,marginBottom:10}}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <label style={{display:"flex",alignItems:"center",gap:5,padding:"7px 14px",background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,cursor:"pointer",fontSize:13}}>
+          <Ic d={IC.up} s={14} c="#B8965A"/> {pdfName||"Anexar PDF"}<input ref={fRef} type="file" accept=".pdf" onChange={upPdf} style={{display:"none"}}/>
+        </label>
+        <button onClick={addItem} disabled={!tema.trim()} style={{padding:"8px 20px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,fontSize:14,fontWeight:600,cursor:tema.trim()?"pointer":"not-allowed",opacity:tema.trim()?1:.5}}>Adicionar à Timeline</button>
+      </div>
+    </div>
+    {/* Timeline visual */}
+    {items.length===0?<div style={{textAlign:"center",padding:40,color:"#8A8279",fontSize:14}}>Timeline vazia — adicione sua primeira atualização acima</div>
+    :<div style={{position:"relative",paddingLeft:30}}>
+      <div style={{position:"absolute",left:12,top:0,bottom:0,width:2,background:"linear-gradient(to bottom,#B8965A,#E8DFD0)"}}/>
+      {items.map((it,i)=><div key={it.id} style={{position:"relative",marginBottom:20}}>
+        <div style={{position:"absolute",left:-24,top:6,width:14,height:14,borderRadius:"50%",background:i===0?"#B8965A":"#D4B882",border:"2px solid #fff"}}/>
+        <div className="cd" style={{padding:"16px 18px",marginLeft:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:16}}>{it.tema}</div>
+              <div style={{fontSize:12,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginTop:2}}>{it.data}{it.criado&&<span style={{marginLeft:10}}>Criado: {it.criado}</span>}</div>
+            </div>
+            <button onClick={()=>delItem(it.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#8A8279"}}><Ic d={IC.tr} s={14} c="#8A8279"/></button>
+          </div>
+          {it.nota&&<div style={{fontSize:14,color:"#5C554A",marginTop:8,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{it.nota}</div>}
+          {it.pdfName&&<div style={{marginTop:8}}><button onClick={()=>setViewPdf(viewPdf===it.id?null:it.id)} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 12px",background:"#F5EDDF",border:"1px solid #E8DFD0",borderRadius:5,fontSize:12,cursor:"pointer",color:"#8C6D3F"}}><Ic d={IC.bk} s={12} c="#8C6D3F"/>{it.pdfName}</button>
+            {viewPdf===it.id&&it.pdfDs&&<div style={{marginTop:8,maxHeight:300,overflow:"auto",border:"1px solid #E8DFD0",borderRadius:6,fontSize:12}}><table className="dt"><tbody>{it.pdfDs.map((d,j)=><tr key={j}><td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:"#B8965A"}}>{d.id}</td><td>{d.txt}{d.rub&&<i> {d.rub}</i>}</td></tr>)}</tbody></table></div>}
+          </div>}
+        </div>
+      </div>)}
+    </div>}
+  </div>;
+}
+function RefTutor({apiKey,saveKey}){const [msgs,setMsgs]=useState([]);const [inp,setInp]=useState("");const [ld,setLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);const cr=useRef(null);const ir=useRef(null);
+  useEffect(()=>{cr.current&&(cr.current.scrollTop=cr.current.scrollHeight);},[msgs]);
+  const send=async()=>{if(!inp.trim()||ld||!apiKey)return;const m=inp.trim();setInp("");setMsgs(p=>[...p,{role:"user",text:m}]);setLd(true);
+    try{const h=msgs.map(x=>({role:x.role==="user"?"user":"assistant",content:x.text}));const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1024,system:"Você é especialista em Reforma Tributária brasileira (EC 132/2023, LC 214/2025, LC 227/2026, IBS, CBS, Imposto Seletivo, transição 2026-2033). Também aplica neurociência da aprendizagem. Seja preciso, cite legislação. Português claro.",messages:[...h,{role:"user",content:m}]})});
+      const d=await r.json();setMsgs(p=>[...p,{role:"assistant",text:d.content?.map(c=>c.text||"").join("")||d.error?.message||"Erro."}]);}catch(e){setMsgs(p=>[...p,{role:"assistant",text:"Erro: "+e.message}]);}setLd(false);ir.current?.focus();};
+  if(!apiKey)return <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:15,marginBottom:6}}>API Key necessária</div><div style={{fontSize:13,color:"#5C554A",marginBottom:10}}>Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a></div>
+    <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"9px 12px",fontSize:13,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div>;
+  return <div style={{display:"flex",flexDirection:"column",height:"55vh"}}>
+    <div ref={cr} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,paddingBottom:8}}>
+      {msgs.length===0&&<div style={{textAlign:"center",padding:24,color:"#8A8279"}}><Ic d={IC.br} s={28} c="#D4B882"/><div style={{marginTop:8,fontSize:15,fontWeight:600,color:"#2D2A26"}}>Tutor da Reforma Tributária</div><div style={{fontSize:13,marginTop:4}}>Pergunte sobre EC 132, LC 214, IBS, CBS, transição...</div></div>}
+      {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"78%",padding:"10px 14px",borderRadius:11,background:m.role==="user"?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:m.role==="user"?"none":"1px solid #E8DFD0",color:m.role==="user"?"#fff":"#2D2A26",fontSize:14,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div></div>)}
+      {ld&&<div style={{display:"flex",gap:5,alignItems:"center",color:"#8A8279",fontSize:13}}><Sp/> Pensando...</div>}
+    </div>
+    <div style={{display:"flex",gap:6,paddingTop:10,borderTop:"1px solid #E8DFD0"}}><input ref={ir} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Pergunte sobre a reforma..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:8,padding:"10px 14px",fontSize:14}}/><button onClick={send} disabled={ld||!inp.trim()} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",border:"none",borderRadius:8,color:"#fff",padding:"0 18px",cursor:"pointer"}}><Ic d={IC.sd} s={15} c="#fff"/></button></div>
+  </div>;
 }
 
 // ═══ ATUALIZAÇÕES ═══
@@ -353,36 +422,36 @@ Separe claramente por fonte. Se não encontrar nada relevante em alguma fonte, i
     if(ate){const[dd,dm,dy]=ate.split("/");const dDate=new Date(dy,dm-1,dd);const[hd,hm,hy]=(h.fetchDate||h.data).split("/");const hDate=new Date(hy,hm-1,hd);if(hDate>dDate)return false;}return true;});
 
   if(!apiKey)return <div className="fade"><h2 style={{fontSize:19,fontWeight:700,marginBottom:12}}>Atualizações Diárias</h2>
-    <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Configure a API Key para buscar atualizações</div><div style={{fontSize:12,color:"#5C554A",marginBottom:10}}>Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a></div>
-      <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 10px",fontSize:12,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div></div>;
+    <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Configure a API Key para buscar atualizações</div><div style={{fontSize:14,color:"#5C554A",marginBottom:10}}>Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a></div>
+      <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 10px",fontSize:14,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"8px 18px",fontSize:14,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div></div>;
 
   return <div className="fade"><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:10}}>
-    <div><h2 style={{fontSize:19,fontWeight:700}}>Atualizações Diárias</h2><div style={{fontSize:11,color:"#8A8279",marginTop:2}}>DOU · Fazenda · NF-e — {hist.length} itens no banco</div></div>
-    <button onClick={buscar} disabled={ld} style={{display:"flex",alignItems:"center",gap:5,padding:"8px 18px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:7,cursor:ld?"wait":"pointer",fontSize:12,fontWeight:600,opacity:ld?.6:1}}>{ld?<Sp/>:<Ic d={IC.rf} s={13} c="#fff"/>}{ld?"Buscando...":"Buscar Últimas 24h"}</button>
+    <div><h2 style={{fontSize:19,fontWeight:700}}>Atualizações Diárias</h2><div style={{fontSize:12,color:"#8A8279",marginTop:2}}>DOU · Fazenda · NF-e — {hist.length} itens no banco</div></div>
+    <button onClick={buscar} disabled={ld} style={{display:"flex",alignItems:"center",gap:5,padding:"8px 18px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:7,cursor:ld?"wait":"pointer",fontSize:14,fontWeight:600,opacity:ld?.6:1}}>{ld?<Sp/>:<Ic d={IC.rf} s={13} c="#fff"/>}{ld?"Buscando...":"Buscar Últimas 24h"}</button>
   </div>
   {/* LINKS DIRETOS */}
   <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>{FONTES.map((f,i)=><a key={i} href={f.u} target="_blank" className="cd" style={{padding:"8px 12px",textDecoration:"none",color:"#2D2A26",display:"flex",alignItems:"center",gap:5,fontSize:12}}><Ic d={IC.lk} s={12} c="#B8965A"/>{f.n}</a>)}</div>
   {/* FILTROS */}
   <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center",flexWrap:"wrap"}}>
-    <span style={{fontSize:11,color:"#8A8279"}}>Filtros:</span>
+    <span style={{fontSize:12,color:"#8A8279"}}>Filtros:</span>
     <select value={filtro} onChange={e=>setFiltro(e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11}}>{fontes.map(f=><option key={f}>{f}</option>)}</select>
-    <input value={de} onChange={e=>setDe(e.target.value)} placeholder="De: dd/mm/aaaa" style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11,width:110}}/>
-    <input value={ate} onChange={e=>setAte(e.target.value)} placeholder="Até: dd/mm/aaaa" style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11,width:110}}/>
-    <span style={{fontSize:11,color:"#8A8279"}}>{filtered.length} resultados</span>
-    {hist.length>0&&<button onClick={()=>{if(confirm("Limpar todo o histórico?")){setHist([]);LS("t3-upd",[]);}}} style={{background:"none",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:10,color:"#8A8279",cursor:"pointer"}}>Limpar</button>}
+    <input value={de} onChange={e=>setDe(e.target.value)} placeholder="De: dd/mm/aaaa" style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:12,width:110}}/>
+    <input value={ate} onChange={e=>setAte(e.target.value)} placeholder="Até: dd/mm/aaaa" style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:12,width:110}}/>
+    <span style={{fontSize:12,color:"#8A8279"}}>{filtered.length} resultados</span>
+    {hist.length>0&&<button onClick={()=>{if(confirm("Limpar todo o histórico?")){setHist([]);LS("t3-upd",[]);}}} style={{background:"none",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11,color:"#8A8279",cursor:"pointer"}}>Limpar</button>}
   </div>
   {/* RESULTADOS */}
   {filtered.length>0?<div style={{display:"flex",flexDirection:"column",gap:6}}>{filtered.map((h,i)=><div key={i} className="cd" style={{padding:"12px 14px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
       <div style={{flex:1}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span className="badge" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{h.fonte}</span><span style={{fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{h.data}</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span className="badge" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{h.fonte}</span><span style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{h.data}</span></div>
         <div style={{fontWeight:600,fontSize:13}}>{h.titulo}</div>
-        {h.resumo&&<div style={{fontSize:12,color:"#5C554A",marginTop:2,lineHeight:1.5}}>{h.resumo}</div>}
+        {h.resumo&&<div style={{fontSize:14,color:"#5C554A",marginTop:2,lineHeight:1.5}}>{h.resumo}</div>}
       </div>
-      {h.link&&h.link.startsWith("http")&&<a href={h.link} target="_blank" style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:"#B8965A",textDecoration:"none",whiteSpace:"nowrap",marginLeft:10}}><Ic d={IC.lk} s={11} c="#B8965A"/>Fonte</a>}
+      {h.link&&h.link.startsWith("http")&&<a href={h.link} target="_blank" style={{display:"flex",alignItems:"center",gap:3,fontSize:12,color:"#B8965A",textDecoration:"none",whiteSpace:"nowrap",marginLeft:10}}><Ic d={IC.lk} s={11} c="#B8965A"/>Fonte</a>}
     </div>
-    <div style={{fontSize:9,color:"#8A8279",marginTop:4,fontFamily:"'DM Mono',monospace"}}>Buscado em {h.fetchDate} às {h.fetchTime}</div>
-  </div>)}</div>:<div style={{textAlign:"center",padding:32,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum resultado{filtro!=="Todas"?" para este filtro":""}</div><div style={{fontSize:12,marginTop:4}}>Clique "Buscar Últimas 24h" para começar</div></div>}
+    <div style={{fontSize:11,color:"#8A8279",marginTop:4,fontFamily:"'DM Mono',monospace"}}>Buscado em {h.fetchDate} às {h.fetchTime}</div>
+  </div>)}</div>:<div style={{textAlign:"center",padding:32,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum resultado{filtro!=="Todas"?" para este filtro":""}</div><div style={{fontSize:14,marginTop:4}}>Clique "Buscar Últimas 24h" para começar</div></div>}
   </div>;
 }
 
