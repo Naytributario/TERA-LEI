@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TERA — Raciocínio Jurídico</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23B8965A'/><text x='50' y='68' font-size='55' font-weight='bold' text-anchor='middle' fill='white' font-family='monospace'>T</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{background:#FAF7F2;font-family:'Crimson Pro',Georgia,serif;color:#2D2A26}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn .2s ease-out}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#E8DFD0;border-radius:3px}
+.nb{background:none;border:none;color:#8A8279;padding:9px 13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;border-radius:7px;transition:all .12s;font-family:inherit;white-space:nowrap}
+.nb:hover{color:#2D2A26;background:#F5EDDF}.nb.on{color:#8C6D3F;background:#F5EDDF;font-weight:600}
+.tg{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:'DM Mono',monospace}
+.cd{background:#fff;border:1px solid #E8DFD0;border-radius:10px;transition:border-color .12s}.cd:hover{border-color:#D4B882}
+.stab{background:none;border:none;padding:8px 14px;cursor:pointer;font-size:12px;font-family:'DM Mono',monospace;color:#8A8279;border-bottom:2px solid transparent;transition:all .12s}
+.stab:hover{color:#2D2A26}.stab.on{color:#8C6D3F;border-bottom-color:#B8965A;font-weight:600}
+input,select,textarea{font-family:inherit}
+table.dt{width:100%;border-collapse:collapse;font-size:12px}table.dt th{background:#B8965A;color:#fff;padding:8px 10px;text-align:left;font-weight:600;position:sticky;top:0}
+table.dt td{padding:7px 10px;border-bottom:1px solid #F0E9DE}table.dt tr:hover{background:#F5EDDF}
+.badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo,useCallback}=React;
+const P={bg:"#FAF7F2",bgAlt:"#F3EDE4",bgCard:"#fff",border:"#E8DFD0",gold:"#B8965A",goldDark:"#8C6D3F",goldLight:"#D4B882",text:"#2D2A26",textMid:"#5C554A",textLight:"#8A8279",accentBg:"#F5EDDF",danger:"#C0392B",success:"#27AE60",info:"#2E86AB",warn:"#D4A017"};
+const AREAS={tributario:{nome:"Tributário",palavras:["microempresa","empresa de pequeno porte","simples nacional","receita bruta","alíquota","base de cálculo","fato gerador","contribuinte","sujeito passivo","obrigação tributária","crédito tributário","lançamento","isenção","imunidade","prescrição","decadência","compensação","multa","juros","mora","ICMS","ISS","IPI","PIS","COFINS","IRPJ","CSLL","INSS","nota fiscal","escrituração","declaração","MEI","parcelamento","certidão negativa","substituição tributária","dívida ativa","execução fiscal","IBS","CBS","imposto seletivo","IVA","não cumulatividade","cashback","split payment","comitê gestor"]},civil:{nome:"Civil",palavras:["capacidade civil","casamento","divórcio","propriedade","posse","usucapião","contrato","obrigação","dano moral","indenização","sucessão","herança","testamento","inventário"]},penal:{nome:"Penal",palavras:["crime","dolo","culpa","pena","reclusão","legítima defesa","tentativa","reincidência","homicídio","furto","roubo","habeas corpus"]},trabalhista:{nome:"Trabalhista",palavras:["empregado","empregador","CLT","salário","horas extras","férias","FGTS","aviso prévio","rescisão","justa causa","terceirização","convenção coletiva"]},constitucional:{nome:"Constitucional",palavras:["direitos fundamentais","liberdade","igualdade","contraditório","ampla defesa","mandado de segurança","dignidade","cláusula pétrea","STF","medida provisória"]},administrativo:{nome:"Administrativo",palavras:["administração pública","servidor público","licitação","pregão","contrato administrativo","concessão","poder de polícia","improbidade","PAD"]}};
+
+// Parser
+const PATS=[{t:"TÍTULO",r:/^\s*T[ÍI]TULO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"CAPÍTULO",r:/^\s*CAP[ÍI]TULO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"SEÇÃO",r:/^\s*SE[ÇC][ÃA]O\s+(?:[IVXLCDM]+|ÚNICA)\s*$/i},{t:"SUBSEÇÃO",r:/^\s*SUBSE[ÇC][ÃA]O\s+(?:[IVXLCDM]+|ÚNICA)\s*$/i},{t:"ARTIGO",r:/^\s*Art\.\s*\d+[ºo°]?[\s\-\.]+/},{t:"PARÁGRAFO",r:/^\s*(?:§\s*\d+[ºo°]?\.?\s|Par[áa]grafo\s+[úu]nico\.?\s)/i},{t:"INCISO",r:/^\s*[IVXLCDM]+\s*[\-–—]\s+/},{t:"ALÍNEA",r:/^\s*[a-z]\)\s+/},{t:"ITEM",r:/^\s*\d+\.\s+/}];
+const DIV=new Set(["TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"]);
+const CT={TÍTULO:"#B8965A",CAPÍTULO:"#D4B882",SEÇÃO:"#E8DFD0",SUBSEÇÃO:"#F0E9DE"};
+
+function idT(s){for(const p of PATS)if(p.r.test(s.trim()))return p.t;return null;}
+function exId(t,s){s=s.trim();if(DIV.has(t))return s;const R={ARTIGO:/^(Art\.\s*\d+[ºo°]?[\-\.]?)/,PARÁGRAFO:/^(§\s*\d+[ºo°]?\.?|Par[áa]grafo\s+[úu]nico\.?)/i,INCISO:/^([IVXLCDM]+)\s*[\-–—]/,ALÍNEA:/^([a-z]\))/,ITEM:/^(\d+\.)/};const m=R[t]?.exec(s);return m?m[1].trim():s.slice(0,30);}
+function exTx(t,s){s=s.trim();if(DIV.has(t))return"";const R={ARTIGO:/^Art\.\s*\d+[ºo°]?[\s\-\.]+(.+)/,PARÁGRAFO:/^(?:§\s*\d+[ºo°]?\.?\s+|Par[áa]grafo\s+[úu]nico\.?\s+)(.+)/i,INCISO:/^[IVXLCDM]+\s*[\-–—]\s+(.+)/,ALÍNEA:/^[a-z]\)\s+(.+)/,ITEM:/^\d+\.\s+(.+)/};const m=R[t]?.exec(s);return m?m[1].trim():s;}
+function parse(txt){const ds=[];let a=null,ag=false;for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){a={tipo:t,id:exId(t,s),rub:"",txt:exTx(t,s)};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else a.txt=a.txt?a.txt+" "+s:s;}}return ds;}
+
+// Analysis functions (matching Python)
+function extrairRemissoes(ds){const re=/(?:§\s*\d+[ºo°]?\s+d[oe]\s+)?(?:arts?\.\s*)(\d+[ºo°]?(?:\s*(?:,|e|a)\s*\d+[ºo°]?)*)/gi;const res=[];let art="";
+  for(const d of ds){if(d.tipo==="ARTIGO")art=d.id;const full=d.txt+" "+d.rub;let m;re.lastIndex=0;while((m=re.exec(full))!==null){const refs=m[1].match(/\d+[ºo°]?/g)||[];for(const r of refs){const dest="Art. "+r;if(dest!==art&&art)res.push({origem:art,disp:d.id,destino:dest,ctx:full.trim(),tipo:d.tipo});}}}return res;}
+
+function extrairPrazosValores(ds){const reVal=/R\$\s*[\d\.]+,\d{2}/g;const rePct=/\d+(?:[,\.]\d+)?\s*%/g;const rePrazo=/(?:\d+\s*(?:dias?|meses?|anos?|horas?))|(?:at[ée]\s+\d{1,2}\s+de\s+\w+)/gi;
+  const res=[];let art="",cap="";for(const d of ds){if(d.tipo==="CAPÍTULO")cap=d.rub||d.id;if(d.tipo==="ARTIGO")art=d.id;if(!d.txt)continue;
+    for(const rx of[[reVal,"VALOR (R$)"],[rePct,"PERCENTUAL (%)"],[rePrazo,"PRAZO"]]){rx[0].lastIndex=0;let m;while((m=rx[0].exec(d.txt))!==null)res.push({art,cap,disp:d.id,tipo:rx[1],val:m[0],ctx:d.txt});}}return res;}
+
+function buildIdx(ds,area){const ws=AREAS[area]?.palavras||[];const idx={};let art="";for(const d of ds){if(d.tipo==="ARTIGO")art=d.id;const t=(d.txt+" "+d.rub).toLowerCase();for(const w of ws)if(t.includes(w.toLowerCase())&&art){if(!idx[w])idx[w]=[];if(!idx[w].includes(art))idx[w].push(art);}}return Object.fromEntries(Object.entries(idx).sort((a,b)=>a[0].localeCompare(b[0],"pt")));}
+
+function hierarquia(ds){const ctx={};const trilha={TÍTULO:"",CAPÍTULO:"",SEÇÃO:"",SUBSEÇÃO:""};const niv=["TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"];
+  for(const d of ds){if(DIV.has(d.tipo)){trilha[d.tipo]=d.rub||d.id;const i=niv.indexOf(d.tipo);for(let j=i+1;j<niv.length;j++)trilha[niv[j]]="";}
+    if(d.tipo==="ARTIGO")ctx[d.id]=Object.values(trilha).filter(Boolean).join(" > ");}return ctx;}
+
+async function pdfToText(f){const ab=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ab}).promise;let t="";for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n";}return t;}
+function LS(k,v){if(v===undefined){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null}catch{return null}}try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+const Ic=({d,s=16,c="currentColor"})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
+const IC={up:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12",bk:"M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",tg:"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01",sd:"M22 2L11 13M22 2l-7 20-4-9-9-4z",tr:"M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2",br:"M9.5 2a3.5 3.5 0 0 0-3.19 4.94A3.5 3.5 0 0 0 4 10.5a3.5 3.5 0 0 0 1.98 3.15A3.5 3.5 0 0 0 8.5 18h1a.5.5 0 0 0 .5-.5V2.5a.5.5 0 0 0-.5-.5zM14.5 2a3.5 3.5 0 0 1 3.19 4.94A3.5 3.5 0 0 1 20 10.5a3.5 3.5 0 0 1-1.98 3.15A3.5 3.5 0 0 1 15.5 18h-1a.5.5 0 0 1-.5-.5V2.5a.5.5 0 0 1 .5-.5z",bl:"M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0",lk:"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71",sc:"M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5",ls:"M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",rf:"M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"};
+const Sp=()=><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#B8965A" strokeWidth="2" style={{animation:"spin 1s linear infinite"}}><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>;
+
+const REFORMA=[{t:"EC",n:"EC 132/2023",d:"Emenda Constitucional da Reforma Tributária",dt:"20/12/2023",url:"https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc132.htm",st:"Vigente",det:"IVA Dual (IBS+CBS), Imposto Seletivo. Extinção gradual PIS,COFINS,IPI,ICMS,ISS."},{t:"LC",n:"LC 214/2025",d:"Regulamentação — IBS, CBS, IS",dt:"16/01/2025",url:"https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp214.htm",st:"Vigente",det:"544 artigos. Normas gerais, cashback, cesta básica, regimes."},{t:"LC",n:"LC 227/2026",d:"Regulamentação complementar",dt:"2026",url:"https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp227.htm",st:"Vigente"},{t:"Fase",n:"2026 — Teste",d:"CBS 0,9% + IBS 0,1%",st:"Em vigor"},{t:"Fase",n:"2027",d:"Extinção PIS/COFINS",st:"Futuro"},{t:"Fase",n:"2029-32",d:"Redução ICMS/ISS",st:"Futuro"},{t:"Fase",n:"2033",d:"Sistema Pleno",st:"Futuro"},{t:"Ref",n:"Portal Fazenda",url:"https://www.gov.br/fazenda/pt-br/acesso-a-informacao/acoes-e-programas/reforma-tributaria",d:"Página oficial",st:"Link"},{t:"Ref",n:"Notícias Fazenda",url:"https://www.gov.br/fazenda/pt-br/acesso-a-informacao/acoes-e-programas/reforma-tributaria/na-midia/noticiass/noticias",d:"Na Mídia",st:"Link"}];
+const FONTES=[{n:"DOU Seção 1",u:"https://www.in.gov.br/leiturajornal?secao=do1"},{n:"DOU Seção 2",u:"https://www.in.gov.br/leiturajornal?secao=do2"},{n:"DOU Seção 3",u:"https://www.in.gov.br/leiturajornal?secao=do3"},{n:"Fazenda — Reforma",u:"https://www.gov.br/fazenda/pt-br/acesso-a-informacao/acoes-e-programas/reforma-tributaria/na-midia/noticiass/noticias"},{n:"Portal NF-e",u:"https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=04BIflQt1aY="}];
+
+// ═══ APP ═══
+function App(){
+  const [lib,setLib]=useState(()=>LS("t3-lib")||[]);const [sel,setSel]=useState(null);const [vw,setVw]=useState("library");const [uping,setUp]=useState(false);const [area,setArea]=useState("tributario");const [study,setStudy]=useState(()=>LS("t3-st")||{});const [apiKey,setApiKey]=useState(()=>LS("t3-key")||"");const fRef=useRef(null);
+
+  const upF=async e=>{const f=e.target.files?.[0];if(!f)return;setUp(true);try{const t=await pdfToText(f);const ds=parse(t);const l={id:Date.now()+"",nome:f.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nA:ds.filter(d=>d.tipo==="ARTIGO").length,nD:ds.length,area};const nl=[l,...lib];setLib(nl);LS("t3-lib",nl);setSel(l);setVw("reader");}catch(e){alert("Erro: "+e.message);}setUp(false);if(fRef.current)fRef.current.value="";};
+  const del=id=>{const nl=lib.filter(l=>l.id!==id);setLib(nl);LS("t3-lib",nl);if(sel?.id===id){setSel(null);setVw("library");}};
+  const uSt=(lid,di,f,v)=>{const k=`${lid}-${di}`;const n={...study,[k]:{...study[k],[f]:v}};setStudy(n);LS("t3-st",n);};
+  const gSt=(lid,di,f)=>study[`${lid}-${di}`]?.[f]||"";
+  const saveKey=k=>{setApiKey(k);LS("t3-key",k);};
+  const nav=[{id:"library",ic:IC.bk,lb:"Biblioteca"},...(sel?[{id:"reader",ic:IC.ls,lb:sel.nome.slice(0,20)}]:[]),{id:"reforma",ic:IC.sc,lb:"Reforma"},{id:"atualizacoes",ic:IC.bl,lb:"Atualizações"}];
+
+  return <div style={{minHeight:"100vh"}}>
+    <header style={{background:"#fff",borderBottom:"1px solid #E8DFD0",padding:"8px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:34,height:34,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",fontWeight:700,fontSize:14,fontFamily:"'DM Mono',monospace",color:"#fff"}}>T</div>
+        <div><div style={{fontSize:15,fontWeight:700,letterSpacing:"1px",fontFamily:"'DM Mono',monospace"}}>TERA</div><div style={{fontSize:9,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>RACIOCÍNIO JURÍDICO</div></div>
+      </div>
+      <nav style={{display:"flex",gap:2,overflowX:"auto"}}>{nav.map(n=><button key={n.id} className={`nb ${vw===n.id?"on":""}`} onClick={()=>setVw(n.id)}><Ic d={n.ic} s={14} c={vw===n.id?"#8C6D3F":"#8A8279"}/>{n.lb}</button>)}</nav>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <a href="https://www.planalto.gov.br" target="_blank" style={{fontSize:11,color:"#8A8279",textDecoration:"none",padding:"5px 8px",border:"1px solid #E8DFD0",borderRadius:5,display:"flex",alignItems:"center",gap:3}}><Ic d={IC.lk} s={11} c="#8A8279"/>Fontes</a>
+        <select value={area} onChange={e=>setArea(e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,color:"#2D2A26",padding:"5px 8px",fontSize:11}}>{Object.entries(AREAS).map(([k,v])=><option key={k} value={k}>{v.nome}</option>)}</select>
+      </div>
+    </header>
+    <main style={{maxWidth:1440,margin:"0 auto",padding:"20px"}}>
+      {vw==="library"&&<Lib lib={lib} sel={sel} onSel={l=>{setSel(l);setVw("reader");}} onDel={del} onUp={upF} uping={uping} fRef={fRef}/>}
+      {vw==="reader"&&sel&&<Reader lei={sel} area={area} gSt={gSt} uSt={uSt} apiKey={apiKey} saveKey={saveKey}/>}
+      {vw==="reforma"&&<Ref/>}
+      {vw==="atualizacoes"&&<Atl apiKey={apiKey} saveKey={saveKey}/>}
+    </main>
+  </div>;
+}
+
+// ═══ LIBRARY ═══
+function Lib({lib,sel,onSel,onDel,onUp,uping,fRef}){return <div className="fade">
+  <div style={{border:"2px dashed #E8DFD0",borderRadius:14,padding:"40px 28px",textAlign:"center",marginBottom:24,background:"#F3EDE4"}}>
+    {uping?<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}><Sp/><span style={{color:"#5C554A",fontSize:14}}>Processando PDF e extraindo estrutura...</span></div>
+    :<><Ic d={IC.up} s={26} c="#B8965A"/><div style={{marginTop:8,fontSize:17,fontWeight:600}}>Adicionar Lei</div><div style={{color:"#8A8279",fontSize:13,marginTop:3,marginBottom:12}}>O parser LC 95/1998 roda local — sem gastar IA</div>
+      <label style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 24px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:600}}><Ic d={IC.up} s={14} c="#fff"/>Selecionar PDF<input ref={fRef} type="file" accept=".pdf" onChange={onUp} style={{display:"none"}}/></label></>}
+  </div>
+  {lib.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:10}}>{lib.map(l=><div key={l.id} className="cd" style={{padding:14,cursor:"pointer",borderColor:sel?.id===l.id?"#B8965A":"#E8DFD0"}} onClick={()=>onSel(l)}>
+    <div style={{display:"flex",justifyContent:"space-between"}}><div><div style={{fontSize:14,fontWeight:600,marginBottom:4}}>{l.nome}</div><span className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{AREAS[l.area]?.nome||l.area}</span></div>
+    <button onClick={e=>{e.stopPropagation();onDel(l.id);}} style={{background:"none",border:"none",color:"#8A8279",cursor:"pointer"}}><Ic d={IC.tr} s={13} c="#8A8279"/></button></div>
+    <div style={{display:"flex",gap:10,marginTop:8,fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}><span>{l.nA} artigos</span><span>{l.nD} dispositivos</span><span>{l.data}</span></div>
+  </div>)}</div>}
+</div>;}
+
+// ═══ READER (with sub-tabs matching Excel) ═══
+function Reader({lei,area,gSt,uSt,apiKey,saveKey}){
+  const [tab,setTab]=useState("texto");
+  const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"tutor",lb:"Tutor IA"}];
+  const ds=lei.ds;
+  return <div className="fade">
+    <h2 style={{fontSize:17,fontWeight:700,marginBottom:4}}>{lei.nome}</h2>
+    <div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginBottom:12}}>{lei.nD} dispositivos · {lei.nA} artigos · Área: {AREAS[area]?.nome}</div>
+    <div style={{display:"flex",gap:0,borderBottom:"1px solid #E8DFD0",marginBottom:16,overflowX:"auto"}}>{tabs.map(t=><button key={t.id} className={`stab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.lb}</button>)}</div>
+    {tab==="sumario"&&<TabSumario ds={ds}/>}
+    {tab==="texto"&&<TabTexto ds={ds} lei={lei} gSt={gSt} uSt={uSt}/>}
+    {tab==="artigos"&&<TabArtigos ds={ds}/>}
+    {tab==="estudo"&&<TabEstudo ds={ds} lei={lei} gSt={gSt} uSt={uSt}/>}
+    {tab==="remissoes"&&<TabRemissoes ds={ds}/>}
+    {tab==="prazos"&&<TabPrazos ds={ds}/>}
+    {tab==="indice"&&<TabIndice ds={ds} area={area}/>}
+    {tab==="mapa"&&<TabMapa ds={ds}/>}
+    {tab==="tutor"&&<TabTutor lei={lei} area={area} apiKey={apiKey} saveKey={saveKey}/>}
+  </div>;
+}
+
+function TabSumario({ds}){const items=ds.filter(d=>DIV.has(d.tipo));return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Identificador</th><th>Rubrica</th></tr></thead><tbody>{items.map((d,i)=><tr key={i} style={{background:CT[d.tipo]||"#fff",color:d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#2D2A26"}}><td>{i+1}</td><td><span className="badge" style={{background:"rgba(0,0,0,.15)",color:"inherit"}}>{d.tipo}</span></td><td style={{fontWeight:700}}>{d.id}</td><td>{d.rub}</td></tr>)}</tbody></table></div>;}
+
+function TabTexto({ds,lei,gSt,uSt}){const [srch,setSrch]=useState("");const fd=useMemo(()=>srch?ds.filter(d=>(d.txt+d.id+d.rub).toLowerCase().includes(srch.toLowerCase())):ds,[ds,srch]);
+  const ind={TÍTULO:0,CAPÍTULO:12,SEÇÃO:24,SUBSEÇÃO:36,ARTIGO:0,PARÁGRAFO:20,INCISO:36,ALÍNEA:52,ITEM:68};
+  const sts=["","Não lido","Lido","Revisando","Dominado","Dúvida"];const sC={Dominado:"#27AE60",Dúvida:"#C0392B",Revisando:"#D4A017",Lido:"#2E86AB"};
+  return <div><div style={{marginBottom:10}}><input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="Buscar na lei..." style={{width:"100%",background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 12px",fontSize:13}}/></div>
+    <div style={{maxHeight:"68vh",overflow:"auto",border:"1px solid #E8DFD0",borderRadius:8}}>{fd.map((d,i)=>{const ri=ds.indexOf(d);const isD=DIV.has(d.tipo);const st=gSt(lei.id,ri,"status");const nt=gSt(lei.id,ri,"note");
+      return <div key={ri} style={{display:"flex",borderBottom:"1px solid #F0E9DE",background:isD?CT[d.tipo]||"#F5EDDF":ri%2===0?"#fff":"#FAF7F2",paddingLeft:ind[d.tipo]||0}}>
+        <div style={{minWidth:70,padding:"6px 4px",textAlign:"center"}}><span className="badge" style={{background:isD?"rgba(0,0,0,.1)":"#F3EDE4",color:isD?(d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#5C554A"):"#8A8279"}}>{d.tipo}</span></div>
+        <div style={{flex:1,padding:"6px 8px",fontSize:12.5,lineHeight:1.6,color:isD?(d.tipo==="TÍTULO"?"#fff":"#2D2A26"):"#2D2A26",fontWeight:isD||d.tipo==="ARTIGO"?600:400}}>
+          <span style={{color:isD?"inherit":"#B8965A",fontFamily:"'DM Mono',monospace",fontSize:11,marginRight:4}}>{d.id}</span>
+          {d.rub&&<i style={{opacity:.7}}>{d.rub} </i>}{d.txt}
+          {nt&&<div style={{marginTop:3,padding:"2px 6px",background:"#F5EDDF",borderLeft:"2px solid #B8965A",borderRadius:3,fontSize:10,color:"#8C6D3F"}}>{nt}</div>}
+        </div>
+        {!isD&&<div style={{minWidth:80,padding:"5px 4px",display:"flex",flexDirection:"column",gap:2}}>
+          <select value={st} onChange={e=>uSt(lei.id,ri,"status",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,color:sC[st]||"#8A8279",padding:"2px",fontSize:9,cursor:"pointer"}}>{sts.map(s=><option key={s} value={s}>{s||"Status"}</option>)}</select>
+          <input placeholder="Nota" defaultValue={nt} onBlur={e=>uSt(lei.id,ri,"note",e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:3,padding:"2px 3px",fontSize:9}}/>
+        </div>}
+      </div>;})}</div></div>;
+}
+
+function TabArtigos({ds}){let art="";const rows=[];const tipos=new Set(["ARTIGO","PARÁGRAFO","INCISO","ALÍNEA","ITEM"]);
+  for(const d of ds){if(d.tipo==="ARTIGO")art=d.id;if(tipos.has(d.tipo))rows.push({art,tipo:d.tipo,id:d.id,txt:d.txt});}
+  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>Artigo</th><th>Tipo</th><th>Id</th><th>Texto</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i} style={{fontWeight:r.tipo==="ARTIGO"?600:400}}><td style={{fontFamily:"'DM Mono',monospace",color:"#B8965A"}}>{r.art}</td><td><span className="badge" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{r.tipo}</span></td><td style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{r.id}</td><td>{r.txt}</td></tr>)}</tbody></table></div>;
+}
+
+function TabEstudo({ds,lei,gSt,uSt}){const ctx=useMemo(()=>hierarquia(ds),[ds]);let art="";const rows=[];
+  for(let i=0;i<ds.length;i++){const d=ds[i];if(d.tipo==="ARTIGO")art=d.id;if(!DIV.has(d.tipo))rows.push({i,d,art,loc:ctx[art]||""});}
+  const sts=["","Não lido","Lido","Revisando","Dominado","Dúvida"];const difs=["","Fácil","Médio","Difícil","Muito Difícil"];
+  const sC={Dominado:"#27AE60",Dúvida:"#C0392B",Revisando:"#D4A017",Lido:"#2E86AB"};const dC={"Muito Difícil":"#C0392B",Difícil:"#D4A017"};
+  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>Localização</th><th>Art.</th><th>Dispositivo</th><th>Texto</th><th>Status</th><th>Dificuldade</th><th>Anotação</th></tr></thead><tbody>{rows.map(r=><tr key={r.i}>
+    <td style={{fontSize:10,color:"#8A8279",maxWidth:160}}>{r.loc}</td><td style={{fontFamily:"'DM Mono',monospace",color:"#B8965A",fontSize:11}}>{r.art}</td><td style={{fontSize:10}}>{r.d.id}</td><td style={{maxWidth:350,fontSize:12}}>{r.d.txt}</td>
+    <td><select value={gSt(lei.id,r.i,"status")} onChange={e=>uSt(lei.id,r.i,"status",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:10,color:sC[gSt(lei.id,r.i,"status")]||"#8A8279",background:"#F5EDDF"}}>{sts.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
+    <td><select value={gSt(lei.id,r.i,"dif")} onChange={e=>uSt(lei.id,r.i,"dif",e.target.value)} style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px",fontSize:10,color:dC[gSt(lei.id,r.i,"dif")]||"#8A8279",background:"#F5EDDF"}}>{difs.map(s=><option key={s} value={s}>{s||"—"}</option>)}</select></td>
+    <td><input defaultValue={gSt(lei.id,r.i,"note")} onBlur={e=>uSt(lei.id,r.i,"note",e.target.value)} placeholder="..." style={{border:"1px solid #E8DFD0",borderRadius:3,padding:"2px 4px",fontSize:10,width:120,background:"#FFFDE7"}}/></td>
+  </tr>)}</tbody></table></div>;
+}
+
+function TabRemissoes({ds}){const rem=useMemo(()=>extrairRemissoes(ds),[ds]);const dest={};rem.forEach(r=>{dest[r.destino]=(dest[r.destino]||0)+1;});const top=Object.entries(dest).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  return <div><div style={{display:"flex",gap:16,marginBottom:14,flexWrap:"wrap"}}><div className="cd" style={{padding:12}}><div style={{fontSize:11,color:"#8A8279"}}>Total</div><div style={{fontSize:22,fontWeight:700,color:"#B8965A"}}>{rem.length}</div></div>
+    {top.length>0&&<div className="cd" style={{padding:12,flex:1}}><div style={{fontSize:11,color:"#8A8279",marginBottom:4}}>Mais referenciados</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{top.map(([a,c])=><span key={a} className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{a} ({c}x)</span>)}</div></div>}</div>
+    <div style={{maxHeight:"60vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Origem</th><th>Dispositivo</th><th>Referencia</th><th>Contexto</th></tr></thead><tbody>{rem.map((r,i)=><tr key={i}><td>{i+1}</td><td style={{color:"#2E86AB",fontWeight:600}}>{r.origem}</td><td>{r.disp}</td><td style={{color:"#C0392B",fontWeight:600}}>{r.destino}</td><td style={{fontSize:11,color:"#5C554A",maxWidth:400}}>{r.ctx}</td></tr>)}</tbody></table></div></div>;
+}
+
+function TabPrazos({ds}){const items=useMemo(()=>extrairPrazosValores(ds),[ds]);const tc={"VALOR (R$)":"#27AE60","PERCENTUAL (%)":"#2E86AB","PRAZO":"#D4A017"};
+  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Conteúdo</th><th>Artigo</th><th>Capítulo</th><th>Contexto</th></tr></thead><tbody>{items.map((r,i)=><tr key={i}><td>{i+1}</td><td><span className="badge" style={{background:(tc[r.tipo]||"#8A8279")+"22",color:tc[r.tipo]}}>{r.tipo}</span></td><td style={{fontWeight:700,fontSize:13}}>{r.val}</td><td style={{fontFamily:"'DM Mono',monospace"}}>{r.art}</td><td style={{fontSize:11,color:"#8A8279"}}>{r.cap}</td><td style={{fontSize:11,color:"#5C554A",maxWidth:350}}>{r.ctx}</td></tr>)}</tbody></table></div>;
+}
+
+function TabIndice({ds,area}){const [s,setS]=useState("");const idx=useMemo(()=>buildIdx(ds,area),[ds,area]);const en=Object.entries(idx).filter(([k])=>!s||k.toLowerCase().includes(s.toLowerCase()));
+  return <div><div style={{marginBottom:10}}><input value={s} onChange={e=>setS(e.target.value)} placeholder="Filtrar termos..." style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:6,padding:"7px 10px",fontSize:12,width:260}}/><span style={{marginLeft:10,fontSize:11,color:"#8A8279"}}>{en.length} termos · {AREAS[area]?.nome}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:8}}>{en.map(([p,arts])=><div key={p} className="cd" style={{padding:"10px 12px",display:"flex",justifyContent:"space-between"}}><div><div style={{fontWeight:600,fontSize:13,textTransform:"capitalize"}}>{p}</div><div style={{marginTop:3,display:"flex",flexWrap:"wrap",gap:3}}>{arts.map(a=><span key={a} className="tg" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{a}</span>)}</div></div><span style={{background:"#F5EDDF",color:"#8C6D3F",padding:"2px 7px",borderRadius:8,fontSize:11,fontWeight:700,fontFamily:"'DM Mono',monospace",height:"fit-content"}}>{arts.length}</span></div>)}</div></div>;
+}
+
+function TabMapa({ds}){const sym={TÍTULO:"■",CAPÍTULO:"●",SEÇÃO:"○",SUBSEÇÃO:"◦",ARTIGO:"├",PARÁGRAFO:"│§",INCISO:"│ ├",ALÍNEA:"│ │├",ITEM:"│ │ ├"};
+  const ind={TÍTULO:0,CAPÍTULO:16,SEÇÃO:32,SUBSEÇÃO:48,ARTIGO:12,PARÁGRAFO:28,INCISO:44,ALÍNEA:60,ITEM:76};
+  return <div style={{maxHeight:"70vh",overflow:"auto",fontFamily:"'DM Mono',monospace",fontSize:12,lineHeight:1.8}}>{ds.map((d,i)=>{const isD=DIV.has(d.tipo);
+    return <div key={i} style={{paddingLeft:ind[d.tipo]||0,background:isD?CT[d.tipo]||"transparent":"transparent",color:isD&&(d.tipo==="TÍTULO")?"#fff":"#2D2A26",fontWeight:isD?700:400,borderBottom:"1px solid #F0E9DE",padding:`3px 6px 3px ${ind[d.tipo]}px`}}>
+      <span style={{opacity:.5}}>{sym[d.tipo]||"·"}</span> <span>{d.id}</span>{d.rub&&<span style={{fontStyle:"italic",marginLeft:6,opacity:.7}}>{d.rub}</span>}{d.txt&&!isD&&<span style={{color:"#5C554A",marginLeft:4,fontFamily:"'Crimson Pro',serif",fontWeight:400}}>{d.txt.slice(0,100)}{d.txt.length>100?"...":""}</span>}
+    </div>;})}</div>;
+}
+
+function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);const [inp,setInp]=useState("");const [ld,setLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);const cr=useRef(null);const ir=useRef(null);
+  useEffect(()=>{cr.current&&(cr.current.scrollTop=cr.current.scrollHeight);},[msgs]);
+  const ctx=useMemo(()=>{const a=lei.ds.filter(d=>d.tipo==="ARTIGO").slice(0,50);return{r:a.map(x=>`${x.id}: ${x.txt.slice(0,180)}`).join("\n"),c:lei.ds.filter(d=>DIV.has(d.tipo)).map(d=>`${d.id} - ${d.rub}`).join("\n"),n:lei.nome,nA:lei.nA,nD:lei.nD};},[lei]);
+  const send=async()=>{if(!inp.trim()||ld||!apiKey)return;const m=inp.trim();setInp("");setMsgs(p=>[...p,{role:"user",text:m}]);setLd(true);
+    try{const h=msgs.map(x=>({role:x.role==="user"?"user":"assistant",content:x.text}));const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1024,system:`Você é o TERA Tutor — especialista em ${AREAS[area]?.nome} e neurociência.\nLEI: ${ctx.n} (${ctx.nA} art)\nESTRUTURA:\n${ctx.c}\nARTIGOS:\n${ctx.r}\n\nSeja preciso, cite artigos. Use recuperação ativa, espaçamento, elaboração. Português claro. Nunca invente dispositivos.`,messages:[...h,{role:"user",content:m}]})});
+      const d=await r.json();setMsgs(p=>[...p,{role:"assistant",text:d.content?.map(c=>c.text||"").join("")||d.error?.message||"Erro."}]);}catch(e){setMsgs(p=>[...p,{role:"assistant",text:"Erro: "+e.message}]);}setLd(false);ir.current?.focus();};
+  if(!apiKey)return <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Chave API Anthropic</div><div style={{fontSize:12,color:"#5C554A",marginBottom:10}}>Necessária para o Tutor e Atualizações. Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a>. Salva apenas no seu navegador.</div>
+    <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 10px",fontSize:12,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div>;
+  return <div style={{display:"flex",flexDirection:"column",height:"60vh"}}>
+    <div ref={cr} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:8,paddingBottom:8}}>
+      {msgs.length===0&&<div style={{textAlign:"center",padding:24,color:"#8A8279"}}><Ic d={IC.br} s={28} c="#D4B882"/><div style={{marginTop:8,fontSize:14,fontWeight:600,color:"#2D2A26"}}>Tutor IA — {lei.nome}</div><div style={{fontSize:12,marginTop:4}}>Pergunte sobre a lei ou peça estratégias de estudo</div></div>}
+      {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"78%",padding:"9px 13px",borderRadius:10,background:m.role==="user"?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:m.role==="user"?"none":"1px solid #E8DFD0",color:m.role==="user"?"#fff":"#2D2A26",fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div></div>)}
+      {ld&&<div style={{display:"flex",gap:4,alignItems:"center",color:"#8A8279",fontSize:12}}><Sp/> Pensando...</div>}
+    </div>
+    <div style={{display:"flex",gap:6,paddingTop:10,borderTop:"1px solid #E8DFD0"}}><input ref={ir} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Pergunte sobre a lei..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:8,padding:"9px 12px",fontSize:13}}/><button onClick={send} disabled={ld||!inp.trim()} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",border:"none",borderRadius:8,color:"#fff",padding:"0 16px",cursor:"pointer"}}><Ic d={IC.sd} s={14} c="#fff"/></button></div>
+  </div>;
+}
+
+// ═══ REFORMA ═══
+function Ref(){const tc={EC:"#C0392B",LC:"#2E86AB",Fase:"#B8965A",Ref:"#8A8279"};const sc={Vigente:"#27AE60","Em vigor":"#27AE60",Futuro:"#8A8279",Link:"#2E86AB"};
+  return <div className="fade"><h2 style={{fontSize:19,fontWeight:700,marginBottom:4}}>Reforma Tributária</h2><div style={{fontSize:11,color:"#8A8279",marginBottom:14}}>EC 132/2023 · LC 214/2025 · LC 227/2026</div>
+    <div style={{display:"flex",gap:8,marginBottom:18,overflowX:"auto"}}>{[{a:"2026",l:"Teste",on:true},{a:"2027",l:"Extinção PIS/COFINS"},{a:"2029",l:"Redução ICMS/ISS"},{a:"2033",l:"Pleno"}].map(t=><div key={t.a} style={{minWidth:130,padding:"10px 12px",borderRadius:8,background:t.on?"linear-gradient(135deg,#B8965A,#8C6D3F)":"#fff",border:"1px solid "+(t.on?"#B8965A":"#E8DFD0"),color:t.on?"#fff":"#2D2A26"}}><div style={{fontSize:17,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{t.a}</div><div style={{fontSize:10,marginTop:2,opacity:.85}}>{t.l}</div></div>)}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:6}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:"12px 16px",display:"flex",gap:12}}><span className="badge" style={{background:(tc[r.t]||"#8A8279")+"18",color:tc[r.t],minWidth:40,textAlign:"center",height:"fit-content",marginTop:2}}>{r.t}</span>
+      <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><b style={{fontSize:13}}>{r.n}</b>{r.dt&&<span style={{fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{r.dt}</span>}<span className="badge" style={{background:(sc[r.st]||"#8A8279")+"18",color:sc[r.st]}}>{r.st}</span></div>
+        <div style={{fontSize:12,color:"#5C554A",marginTop:2}}>{r.d}</div>{r.det&&<div style={{fontSize:11,color:"#8A8279",marginTop:3}}>{r.det}</div>}{r.url&&<a href={r.url} target="_blank" style={{fontSize:11,color:"#B8965A",marginTop:3,display:"inline-flex",alignItems:"center",gap:3,textDecoration:"none"}}><Ic d={IC.lk} s={10} c="#B8965A"/>Texto oficial</a>}</div></div>)}</div></div>;
+}
+
+// ═══ ATUALIZAÇÕES ═══
+function Atl({apiKey,saveKey}){
+  const [hist,setHist]=useState(()=>LS("t3-upd")||[]);const [ld,setLd]=useState(false);const [de,setDe]=useState("");const [ate,setAte]=useState("");const [filtro,setFiltro]=useState("Todas");const [localKey,setLocalKey]=useState(apiKey);
+
+  const buscar=async()=>{if(!apiKey){alert("Configure a API key primeiro (aba Tutor IA).");return;}setLd(true);
+    const hoje=new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
+    try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2048,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:`Busque publicações tributárias das últimas 24 horas (hoje: ${hoje}). Pesquise em cada fonte separadamente:
+
+FONTE 1 - DOU (Diário Oficial da União): Busque "diário oficial da união hoje tributário ${hoje}" e "DOU instrução normativa receita federal ${hoje}". Liste decretos, INs, portarias sobre tributos.
+
+FONTE 2 - Ministério da Fazenda: Busque "reforma tributária notícias ${hoje}" e "fazenda.gov.br reforma tributária". Liste notícias sobre IBS, CBS, IS.
+
+FONTE 3 - Portal NF-e: Busque "portal nfe nota técnica ${hoje}" e "nfe.fazenda.gov.br notícias". Liste notas técnicas e atualizações.
+
+FORMATO OBRIGATÓRIO para cada item encontrado:
+[FONTE: nome_da_fonte]
+TÍTULO: título_da_publicação
+RESUMO: resumo em 1-2 linhas
+DATA: data_da_publicação
+LINK: url_direta
+
+Separe claramente por fonte. Se não encontrar nada relevante em alguma fonte, indique.`}]})});
+      const data=await r.json();const txt=data.content?.filter(c=>c.type==="text").map(c=>c.text).join("\n")||"Sem resultados.";
+      // Parse results into structured items
+      const items=[];const lines=txt.split("\n");let curFonte="Geral",curItem=null;
+      for(const line of lines){const fMatch=line.match(/\[FONTE:\s*(.+?)\]/i);if(fMatch){curFonte=fMatch[1].trim();continue;}
+        const tMatch=line.match(/^TÍTULO:\s*(.+)/i);if(tMatch){if(curItem)items.push(curItem);curItem={fonte:curFonte,titulo:tMatch[1].trim(),resumo:"",data:hoje,link:"",fetchDate:hoje,fetchTime:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};continue;}
+        if(curItem){const rM=line.match(/^RESUMO:\s*(.+)/i);if(rM){curItem.resumo=rM[1].trim();continue;}const dM=line.match(/^DATA:\s*(.+)/i);if(dM){curItem.data=dM[1].trim();continue;}const lM=line.match(/^LINK:\s*(.+)/i);if(lM){curItem.link=lM[1].trim();continue;}}}
+      if(curItem)items.push(curItem);
+      if(items.length===0)items.push({fonte:"Resultado",titulo:"Busca realizada",resumo:txt.slice(0,500),data:hoje,link:"",fetchDate:hoje,fetchTime:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})});
+      const nh=[...items,...hist];setHist(nh);LS("t3-upd",nh);
+    }catch(e){alert("Erro: "+e.message);}setLd(false);};
+
+  const fontes=["Todas",...new Set(hist.map(h=>h.fonte))];
+  const filtered=hist.filter(h=>{if(filtro!=="Todas"&&h.fonte!==filtro)return false;if(de){const[dd,dm,dy]=de.split("/");const dDate=new Date(dy,dm-1,dd);const[hd,hm,hy]=(h.fetchDate||h.data).split("/");const hDate=new Date(hy,hm-1,hd);if(hDate<dDate)return false;}
+    if(ate){const[dd,dm,dy]=ate.split("/");const dDate=new Date(dy,dm-1,dd);const[hd,hm,hy]=(h.fetchDate||h.data).split("/");const hDate=new Date(hy,hm-1,hd);if(hDate>dDate)return false;}return true;});
+
+  if(!apiKey)return <div className="fade"><h2 style={{fontSize:19,fontWeight:700,marginBottom:12}}>Atualizações Diárias</h2>
+    <div className="cd" style={{padding:20,background:"#F5EDDF",borderColor:"#B8965A"}}><div style={{fontWeight:700,fontSize:14,marginBottom:6}}>Configure a API Key para buscar atualizações</div><div style={{fontSize:12,color:"#5C554A",marginBottom:10}}>Obtenha em <a href="https://console.anthropic.com" target="_blank" style={{color:"#B8965A"}}>console.anthropic.com</a></div>
+      <div style={{display:"flex",gap:6}}><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-api03-..." style={{flex:1,background:"#fff",border:"1px solid #E8DFD0",borderRadius:6,padding:"8px 10px",fontSize:12,fontFamily:"'DM Mono',monospace"}}/><button onClick={()=>saveKey(localKey)} style={{background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Salvar</button></div></div></div>;
+
+  return <div className="fade"><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:10}}>
+    <div><h2 style={{fontSize:19,fontWeight:700}}>Atualizações Diárias</h2><div style={{fontSize:11,color:"#8A8279",marginTop:2}}>DOU · Fazenda · NF-e — {hist.length} itens no banco</div></div>
+    <button onClick={buscar} disabled={ld} style={{display:"flex",alignItems:"center",gap:5,padding:"8px 18px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:7,cursor:ld?"wait":"pointer",fontSize:12,fontWeight:600,opacity:ld?.6:1}}>{ld?<Sp/>:<Ic d={IC.rf} s={13} c="#fff"/>}{ld?"Buscando...":"Buscar Últimas 24h"}</button>
+  </div>
+  {/* LINKS DIRETOS */}
+  <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>{FONTES.map((f,i)=><a key={i} href={f.u} target="_blank" className="cd" style={{padding:"8px 12px",textDecoration:"none",color:"#2D2A26",display:"flex",alignItems:"center",gap:5,fontSize:12}}><Ic d={IC.lk} s={12} c="#B8965A"/>{f.n}</a>)}</div>
+  {/* FILTROS */}
+  <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center",flexWrap:"wrap"}}>
+    <span style={{fontSize:11,color:"#8A8279"}}>Filtros:</span>
+    <select value={filtro} onChange={e=>setFiltro(e.target.value)} style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11}}>{fontes.map(f=><option key={f}>{f}</option>)}</select>
+    <input value={de} onChange={e=>setDe(e.target.value)} placeholder="De: dd/mm/aaaa" style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11,width:110}}/>
+    <input value={ate} onChange={e=>setAte(e.target.value)} placeholder="Até: dd/mm/aaaa" style={{background:"#F3EDE4",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:11,width:110}}/>
+    <span style={{fontSize:11,color:"#8A8279"}}>{filtered.length} resultados</span>
+    {hist.length>0&&<button onClick={()=>{if(confirm("Limpar todo o histórico?")){setHist([]);LS("t3-upd",[]);}}} style={{background:"none",border:"1px solid #E8DFD0",borderRadius:5,padding:"4px 8px",fontSize:10,color:"#8A8279",cursor:"pointer"}}>Limpar</button>}
+  </div>
+  {/* RESULTADOS */}
+  {filtered.length>0?<div style={{display:"flex",flexDirection:"column",gap:6}}>{filtered.map((h,i)=><div key={i} className="cd" style={{padding:"12px 14px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div style={{flex:1}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span className="badge" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{h.fonte}</span><span style={{fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{h.data}</span></div>
+        <div style={{fontWeight:600,fontSize:13}}>{h.titulo}</div>
+        {h.resumo&&<div style={{fontSize:12,color:"#5C554A",marginTop:2,lineHeight:1.5}}>{h.resumo}</div>}
+      </div>
+      {h.link&&h.link.startsWith("http")&&<a href={h.link} target="_blank" style={{display:"flex",alignItems:"center",gap:3,fontSize:11,color:"#B8965A",textDecoration:"none",whiteSpace:"nowrap",marginLeft:10}}><Ic d={IC.lk} s={11} c="#B8965A"/>Fonte</a>}
+    </div>
+    <div style={{fontSize:9,color:"#8A8279",marginTop:4,fontFamily:"'DM Mono',monospace"}}>Buscado em {h.fetchDate} às {h.fetchTime}</div>
+  </div>)}</div>:<div style={{textAlign:"center",padding:32,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum resultado{filtro!=="Todas"?" para este filtro":""}</div><div style={{fontSize:12,marginTop:4}}>Clique "Buscar Últimas 24h" para começar</div></div>}
+  </div>;
+}
+
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
