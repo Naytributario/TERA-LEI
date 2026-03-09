@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}body{background:#FAF7F2;font-family:'Crimson Pro',Georgia,serif;color:#2D2A26}
@@ -68,7 +69,7 @@ async function pdfToText(f){const ab=await f.arrayBuffer();const pdf=await pdfjs
       if(lastY!==null&&Math.abs(y-lastY)>3){fullText+=line.trim()+"\n";line="";}
       line+=(line?" ":"")+item.str;lastY=y;}
     if(line.trim())fullText+=line.trim()+"\n";}
-  // Post-process: force line breaks before structural patterns that may have been merged
+  // Post-process: force line breaks before structural patterns
   fullText=fullText.replace(/([.;:)\]]) *(Art\.\s*\d)/g,"$1\n$2");
   fullText=fullText.replace(/([.;:)\]]) *(§\s*\d)/g,"$1\n$2");
   fullText=fullText.replace(/([.;:)\]]) *(Parágrafo único)/gi,"$1\n$2");
@@ -78,6 +79,12 @@ async function pdfToText(f){const ab=await f.arrayBuffer();const pdf=await pdfjs
   fullText=fullText.replace(/ (Subseção\s+[IVXLCDM])/gi,"\n$1");
   fullText=fullText.replace(/ (PARTE\s+(?:GERAL|ESPECIAL|[IVXLCDM]))/g,"\n$1");
   fullText=fullText.replace(/ (LIVRO\s+[IVXLCDM])/g,"\n$1");
+  // Clean ANEXO PDF references (Receita Federal style)
+  fullText=fullText.replace(/\s*(?:\u0000|\ufffd)?\s*ANEXO\s+[IVXLCDM]+\.pdf/gi,"");
+  fullText=fullText.replace(/ANEXO\s+[IVXLCDM]+\.pdf/gi,"");
+  fullText=fullText.replace(/\s*\[?\s*Reda[çc][ãa]o dada pel[oa]\(a\)[^\]]*\]?\s*/gi," ");
+  fullText=fullText.replace(/\s*\[?\s*Inclu[ií]d[oa]\(a\) pel[oa]\(a\)[^\]]*\]?\s*/gi," ");
+  fullText=fullText.replace(/\* Este texto não substitui o publicado oficialmente\./gi,"");
   return fullText;}
 function LS(k,v){if(v===undefined){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null}catch{return null}}try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 
@@ -92,8 +99,10 @@ const FONTES=[{n:"DOU Seção 1",u:"https://www.in.gov.br/leiturajornal?secao=do
 function App(){
   const [lib,setLib]=useState(()=>LS("t3-lib")||[]);const [sel,setSel]=useState(null);const [vw,setVw]=useState("library");const [uping,setUp]=useState(false);const [area,setArea]=useState("tributario");const [study,setStudy]=useState(()=>LS("t3-st")||{});const [apiKey,setApiKey]=useState(()=>LS("t3-key")||"");const fRef=useRef(null);
 
-  const upF=async e=>{const f=e.target.files?.[0];if(!f)return;setUp(true);try{const t=await pdfToText(f);const ds=parse(t);const l={id:Date.now()+"",nome:f.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nA:ds.filter(d=>d.tipo==="ARTIGO").length,nD:ds.length,area};const nl=[l,...lib];setLib(nl);LS("t3-lib",nl);setSel(l);setVw("reader");}catch(e){alert("Erro: "+e.message);}setUp(false);if(fRef.current)fRef.current.value="";};
+  const upF=async e=>{const f=e.target.files?.[0];if(!f)return;setUp(true);try{const t=await pdfToText(f);const ds=parse(t);const l={id:Date.now()+"",nome:f.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nA:ds.filter(d=>d.tipo==="ARTIGO").length,nD:ds.length,area,anexos:[]};const nl=[l,...lib];setLib(nl);LS("t3-lib",nl);setSel(l);setVw("reader");}catch(e){alert("Erro: "+e.message);}setUp(false);if(fRef.current)fRef.current.value="";};
   const del=id=>{const nl=lib.filter(l=>l.id!==id);setLib(nl);LS("t3-lib",nl);if(sel?.id===id){setSel(null);setVw("library");}};
+  const addAnexo=async(leiId,file)=>{try{const t=await pdfToText(file);const ds=parse(t);const anx={nome:file.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nD:ds.length};
+    const nl=lib.map(l=>l.id===leiId?{...l,anexos:[...(l.anexos||[]),anx]}:l);setLib(nl);LS("t3-lib",nl);if(sel?.id===leiId)setSel(nl.find(l=>l.id===leiId));return true;}catch(e){alert("Erro no anexo: "+e.message);return false;}};
   const uSt=(lid,di,f,v)=>{const k=`${lid}-${di}`;const n={...study,[k]:{...study[k],[f]:v}};setStudy(n);LS("t3-st",n);};
   const gSt=(lid,di,f)=>study[`${lid}-${di}`]?.[f]||"";
   const saveKey=k=>{setApiKey(k);LS("t3-key",k);};
@@ -113,7 +122,7 @@ function App(){
     </header>
     <main style={{maxWidth:1440,margin:"0 auto",padding:"20px"}}>
       {vw==="library"&&<Lib lib={lib} sel={sel} onSel={l=>{setSel(l);setVw("reader");}} onDel={del} onUp={upF} uping={uping} fRef={fRef}/>}
-      {vw==="reader"&&sel&&<Reader lei={sel} area={area} gSt={gSt} uSt={uSt} apiKey={apiKey} saveKey={saveKey}/>}
+      {vw==="reader"&&sel&&<Reader lei={sel} area={area} gSt={gSt} uSt={uSt} apiKey={apiKey} saveKey={saveKey} addAnexo={addAnexo} study={study}/>}
       {vw==="reforma"&&<Ref/>}
       {vw==="atualizacoes"&&<Atl apiKey={apiKey} saveKey={saveKey}/>}
     </main>
@@ -135,22 +144,52 @@ function Lib({lib,sel,onSel,onDel,onUp,uping,fRef}){return <div className="fade"
 </div>;}
 
 // ═══ READER (with sub-tabs matching Excel) ═══
-function Reader({lei,area,gSt,uSt,apiKey,saveKey}){
-  const [tab,setTab]=useState("texto");
-  const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"tutor",lb:"Tutor IA"}];
+function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,study}){
+  const [tab,setTab]=useState("texto");const [saved,setSaved]=useState(false);
+  const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"anexos",lb:`Anexos (${(lei.anexos||[]).length})`},{id:"tutor",lb:"Tutor IA"}];
   const ds=lei.ds;
+  const showSaved=()=>{setSaved(true);setTimeout(()=>setSaved(false),1500);};
+  const wrappedUSt=(a,b,c,d)=>{uSt(a,b,c,d);showSaved();};
+  // Excel Export
+  const exportXlsx=()=>{const wb=XLSX.utils.book_new();
+    // Texto Integral
+    const txData=[["#","Tipo","Identificador","Rubrica","Texto"],...ds.map((d,i)=>[i+1,d.tipo,d.id,d.rub,d.txt])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(txData),"Texto Integral");
+    // Estudo Guiado com anotações
+    const ctx=hierarquia(ds);let art="";const estData=[["Localização","Artigo","Dispositivo","Texto","Status","Dificuldade","Anotação"]];
+    for(let i=0;i<ds.length;i++){const d=ds[i];if(d.tipo==="ARTIGO")art=d.id;if(!DIV.has(d.tipo))estData.push([ctx[art]||"",art,d.id,d.txt,gSt(lei.id,i,"status"),gSt(lei.id,i,"dif"),gSt(lei.id,i,"note")]);}
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(estData),"Estudo Guiado");
+    // Remissões
+    const rem=extrairRemissoes(ds);const remData=[["#","Origem","Dispositivo","Referência","Contexto"],...rem.map((r,i)=>[i+1,r.origem,r.disp,r.destino,r.ctx])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(remData),"Remissões");
+    // Prazos
+    const pv=extrairPrazosValores(ds);const pvData=[["#","Tipo","Conteúdo","Artigo","Capítulo","Contexto"],...pv.map((r,i)=>[i+1,r.tipo,r.val,r.art,r.cap,r.ctx])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pvData),"Prazos e Valores");
+    // Índice
+    const idx=buildIdx(ds,area);const idxData=[["Palavra-chave","Artigos","Qtd"],...Object.entries(idx).map(([p,a])=>[p,a.join(", "),a.length])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(idxData),"Índice Remissivo");
+    // Anexos
+    (lei.anexos||[]).forEach((anx,ai)=>{const axData=[["#","Tipo","Id","Texto"],...anx.ds.map((d,i)=>[i+1,d.tipo,d.id,d.txt])];
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(axData),"Anexo "+(ai+1));});
+    XLSX.writeFile(wb,lei.nome+"_TERA.xlsx");};
   return <div className="fade">
-    <h2 style={{fontSize:17,fontWeight:700,marginBottom:4}}>{lei.nome}</h2>
-    <div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginBottom:12}}>{lei.nD} dispositivos · {lei.nA} artigos · Área: {AREAS[area]?.nome}</div>
-    <div style={{display:"flex",gap:0,borderBottom:"1px solid #E8DFD0",marginBottom:16,overflowX:"auto"}}>{tabs.map(t=><button key={t.id} className={`stab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.lb}</button>)}</div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+      <div><h2 style={{fontSize:17,fontWeight:700}}>{lei.nome}</h2><div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace"}}>{lei.nD} dispositivos · {lei.nA} artigos · {(lei.anexos||[]).length} anexos · {AREAS[area]?.nome}</div></div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        {saved&&<span style={{fontSize:11,color:"#27AE60",fontWeight:600,animation:"fadeIn .2s"}}>Salvo!</span>}
+        <button onClick={exportXlsx} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 14px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar Excel</button>
+      </div>
+    </div>
+    <div style={{display:"flex",gap:0,borderBottom:"1px solid #E8DFD0",marginBottom:14,overflowX:"auto"}}>{tabs.map(t=><button key={t.id} className={`stab ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>{t.lb}</button>)}</div>
     {tab==="sumario"&&<TabSumario ds={ds}/>}
-    {tab==="texto"&&<TabTexto ds={ds} lei={lei} gSt={gSt} uSt={uSt}/>}
+    {tab==="texto"&&<TabTexto ds={ds} lei={lei} gSt={gSt} uSt={wrappedUSt}/>}
     {tab==="artigos"&&<TabArtigos ds={ds}/>}
-    {tab==="estudo"&&<TabEstudo ds={ds} lei={lei} gSt={gSt} uSt={uSt}/>}
+    {tab==="estudo"&&<TabEstudo ds={ds} lei={lei} gSt={gSt} uSt={wrappedUSt}/>}
     {tab==="remissoes"&&<TabRemissoes ds={ds}/>}
     {tab==="prazos"&&<TabPrazos ds={ds}/>}
     {tab==="indice"&&<TabIndice ds={ds} area={area}/>}
     {tab==="mapa"&&<TabMapa ds={ds}/>}
+    {tab==="anexos"&&<TabAnexos lei={lei} addAnexo={addAnexo}/>}
     {tab==="tutor"&&<TabTutor lei={lei} area={area} apiKey={apiKey} saveKey={saveKey}/>}
   </div>;
 }
@@ -214,6 +253,39 @@ function TabMapa({ds}){const sym={TÍTULO:"■",CAPÍTULO:"●",SEÇÃO:"○",SU
     return <div key={i} style={{paddingLeft:ind[d.tipo]||0,background:isD?CT[d.tipo]||"transparent":"transparent",color:isD&&(d.tipo==="TÍTULO")?"#fff":"#2D2A26",fontWeight:isD?700:400,borderBottom:"1px solid #F0E9DE",padding:`3px 6px 3px ${ind[d.tipo]}px`}}>
       <span style={{opacity:.5}}>{sym[d.tipo]||"·"}</span> <span>{d.id}</span>{d.rub&&<span style={{fontStyle:"italic",marginLeft:6,opacity:.7}}>{d.rub}</span>}{d.txt&&!isD&&<span style={{color:"#5C554A",marginLeft:4,fontFamily:"'Crimson Pro',serif",fontWeight:400}}>{d.txt.slice(0,100)}{d.txt.length>100?"...":""}</span>}
     </div>;})}</div>;
+}
+
+function TabAnexos({lei,addAnexo}){const [uping,setUp]=useState(false);const [selAnx,setSelAnx]=useState(null);const fRef=useRef(null);
+  const upAnx=async e=>{const files=e.target.files;if(!files||!files.length)return;setUp(true);
+    for(let i=0;i<files.length;i++){await addAnexo(lei.id,files[i]);}
+    setUp(false);if(fRef.current)fRef.current.value="";};
+  const anexos=lei.anexos||[];
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+      <div style={{fontSize:13,color:"#5C554A"}}>{anexos.length} anexo(s) vinculado(s)</div>
+      <label style={{display:"inline-flex",alignItems:"center",gap:5,padding:"7px 16px",background:"linear-gradient(135deg,#B8965A,#8C6D3F)",color:"#fff",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600}}>
+        {uping?<><Sp/> Processando...</>:<><Ic d={IC.up} s={13} c="#fff"/> Adicionar Anexo(s)</>}
+        <input ref={fRef} type="file" accept=".pdf" multiple onChange={upAnx} style={{display:"none"}}/>
+      </label>
+    </div>
+    {anexos.length===0?<div style={{textAlign:"center",padding:40,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum anexo vinculado</div><div style={{fontSize:12,marginTop:4}}>Suba os PDFs dos anexos (ex: ANEXO I.pdf, ANEXO II.pdf)</div></div>
+    :<div style={{display:"flex",gap:16}}>
+      {/* Lista de anexos */}
+      <div style={{minWidth:200,display:"flex",flexDirection:"column",gap:4}}>
+        {anexos.map((a,i)=><div key={i} className="cd" style={{padding:"10px 12px",cursor:"pointer",borderColor:selAnx===i?"#B8965A":"#E8DFD0",background:selAnx===i?"#F5EDDF":"#fff"}} onClick={()=>setSelAnx(i)}>
+          <div style={{fontWeight:600,fontSize:13}}>{a.nome}</div>
+          <div style={{fontSize:10,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginTop:2}}>{a.nD} itens · {a.data}</div>
+        </div>)}
+      </div>
+      {/* Conteúdo do anexo selecionado */}
+      {selAnx!==null&&anexos[selAnx]&&<div style={{flex:1,maxHeight:"65vh",overflow:"auto",border:"1px solid #E8DFD0",borderRadius:8}}>
+        <div style={{padding:"8px 12px",background:"#F3EDE4",fontWeight:600,fontSize:13,position:"sticky",top:0}}>{anexos[selAnx].nome}</div>
+        <table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Id</th><th>Texto</th></tr></thead><tbody>{anexos[selAnx].ds.map((d,i)=>
+          <tr key={i}><td>{i+1}</td><td><span className="badge" style={{background:"#F5EDDF",color:"#8C6D3F"}}>{d.tipo||"TEXTO"}</span></td><td style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{d.id}</td><td style={{fontSize:12}}>{d.txt}{d.rub&&<i style={{opacity:.7}}> {d.rub}</i>}</td></tr>
+        )}</tbody></table>
+      </div>}
+    </div>}
+  </div>;
 }
 
 function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);const [inp,setInp]=useState("");const [ld,setLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);const cr=useRef(null);const ir=useRef(null);
