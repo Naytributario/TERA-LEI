@@ -101,8 +101,12 @@ function App(){
 
   const upF=async e=>{const f=e.target.files?.[0];if(!f)return;setUp(true);try{const t=await pdfToText(f);const ds=parse(t);const l={id:Date.now()+"",nome:f.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nA:ds.filter(d=>d.tipo==="ARTIGO").length,nD:ds.length,area,anexos:[]};const nl=[l,...lib];setLib(nl);LS("t3-lib",nl);setSel(l);setVw("reader");}catch(e){alert("Erro: "+e.message);}setUp(false);if(fRef.current)fRef.current.value="";};
   const del=id=>{const nl=lib.filter(l=>l.id!==id);setLib(nl);LS("t3-lib",nl);if(sel?.id===id){setSel(null);setVw("library");}};
-  const addAnexo=async(leiId,file)=>{try{const t=await pdfToText(file);const ds=parse(t);const anx={nome:file.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nD:ds.length};
+  const addAnexo=async(leiId,file)=>{try{const t=await pdfToText(file);let ds=parse(t);
+    // If parser found nothing or very little, treat each non-empty line as a raw item
+    if(ds.length<3){const lines=t.split("\n").map(l=>l.trim()).filter(Boolean);ds=lines.map(l=>({tipo:"TEXTO",id:"",rub:"",txt:l}));}
+    const anx={nome:file.name.replace(/\.pdf$/i,""),data:new Date().toLocaleDateString("pt-BR"),ds,nD:ds.length};
     const nl=lib.map(l=>l.id===leiId?{...l,anexos:[...(l.anexos||[]),anx]}:l);setLib(nl);LS("t3-lib",nl);if(sel?.id===leiId)setSel(nl.find(l=>l.id===leiId));return true;}catch(e){alert("Erro no anexo: "+e.message);return false;}};
+  const delAnexo=(leiId,idx)=>{const nl=lib.map(l=>l.id===leiId?{...l,anexos:(l.anexos||[]).filter((_,i)=>i!==idx)}:l);setLib(nl);LS("t3-lib",nl);if(sel?.id===leiId)setSel(nl.find(l=>l.id===leiId));};
   const uSt=(lid,di,f,v)=>{const k=`${lid}-${di}`;const n={...study,[k]:{...study[k],[f]:v}};setStudy(n);LS("t3-st",n);};
   const gSt=(lid,di,f)=>study[`${lid}-${di}`]?.[f]||"";
   const saveKey=k=>{setApiKey(k);LS("t3-key",k);};
@@ -122,7 +126,7 @@ function App(){
     </header>
     <main style={{maxWidth:1440,margin:"0 auto",padding:"20px"}}>
       {vw==="library"&&<Lib lib={lib} sel={sel} onSel={l=>{setSel(l);setVw("reader");}} onDel={del} onUp={upF} uping={uping} fRef={fRef}/>}
-      {vw==="reader"&&sel&&<Reader lei={sel} area={area} gSt={gSt} uSt={uSt} apiKey={apiKey} saveKey={saveKey} addAnexo={addAnexo} study={study}/>}
+      {vw==="reader"&&sel&&<Reader lei={sel} area={area} gSt={gSt} uSt={uSt} apiKey={apiKey} saveKey={saveKey} addAnexo={addAnexo} delAnexo={delAnexo} study={study}/>}
       {vw==="reforma"&&<Ref apiKey={apiKey} saveKey={saveKey}/>}
       {vw==="atualizacoes"&&<Atl apiKey={apiKey} saveKey={saveKey}/>}
     </main>
@@ -144,7 +148,7 @@ function Lib({lib,sel,onSel,onDel,onUp,uping,fRef}){return <div className="fade"
 </div>;}
 
 // ═══ READER (with sub-tabs matching Excel) ═══
-function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,study}){
+function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
   const [tab,setTab]=useState("texto");const [saved,setSaved]=useState(false);const [goSearch,setGoSearch]=useState("");
   const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"anexos",lb:`Anexos (${(lei.anexos||[]).length})`},{id:"tutor",lb:"Tutor IA"}];
   const ds=lei.ds;
@@ -189,7 +193,7 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,study}){
     {tab==="prazos"&&<TabPrazos ds={ds}/>}
     {tab==="indice"&&<TabIndice ds={ds} area={area} onGoToArt={a=>{setGoSearch(a);setTab("texto");}}/>}
     {tab==="mapa"&&<TabMapa ds={ds}/>}
-    {tab==="anexos"&&<TabAnexos lei={lei} addAnexo={addAnexo}/>}
+    {tab==="anexos"&&<TabAnexos lei={lei} addAnexo={addAnexo} delAnexo={delAnexo}/>}
     {tab==="tutor"&&<TabTutor lei={lei} area={area} apiKey={apiKey} saveKey={saveKey}/>}
   </div>;
 }
@@ -255,10 +259,11 @@ function TabMapa({ds}){const sym={TÍTULO:"■",CAPÍTULO:"●",SEÇÃO:"○",SU
     </div>;})}</div>;
 }
 
-function TabAnexos({lei,addAnexo}){const [uping,setUp]=useState(false);const [selAnx,setSelAnx]=useState(null);const fRef=useRef(null);
+function TabAnexos({lei,addAnexo,delAnexo}){const [uping,setUp]=useState(false);const [selAnx,setSelAnx]=useState(null);const fRef=useRef(null);
   const upAnx=async e=>{const files=e.target.files;if(!files||!files.length)return;setUp(true);
     for(let i=0;i<files.length;i++){await addAnexo(lei.id,files[i]);}
     setUp(false);if(fRef.current)fRef.current.value="";};
+  const rmAnx=(idx)=>{if(confirm("Excluir este anexo?")){delAnexo(lei.id,idx);if(selAnx===idx)setSelAnx(null);else if(selAnx>idx)setSelAnx(selAnx-1);}};
   const anexos=lei.anexos||[];
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -271,10 +276,12 @@ function TabAnexos({lei,addAnexo}){const [uping,setUp]=useState(false);const [se
     {anexos.length===0?<div style={{textAlign:"center",padding:40,color:"#8A8279"}}><div style={{fontSize:14}}>Nenhum anexo vinculado</div><div style={{fontSize:14,marginTop:4}}>Suba os PDFs dos anexos (ex: ANEXO I.pdf, ANEXO II.pdf)</div></div>
     :<div style={{display:"flex",gap:16}}>
       {/* Lista de anexos */}
-      <div style={{minWidth:200,display:"flex",flexDirection:"column",gap:4}}>
+      <div style={{minWidth:220,display:"flex",flexDirection:"column",gap:4}}>
         {anexos.map((a,i)=><div key={i} className="cd" style={{padding:"10px 12px",cursor:"pointer",borderColor:selAnx===i?"#B8965A":"#E8DFD0",background:selAnx===i?"#F5EDDF":"#fff"}} onClick={()=>setSelAnx(i)}>
-          <div style={{fontWeight:600,fontSize:13}}>{a.nome}</div>
-          <div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginTop:2}}>{a.nD} itens · {a.data}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div><div style={{fontWeight:600,fontSize:13}}>{a.nome}</div><div style={{fontSize:11,color:"#8A8279",fontFamily:"'DM Mono',monospace",marginTop:2}}>{a.nD} itens · {a.data}</div></div>
+            <button onClick={e=>{e.stopPropagation();rmAnx(i);}} style={{background:"none",border:"none",cursor:"pointer",color:"#C0392B",padding:2}} title="Excluir anexo"><Ic d={IC.tr} s={13} c="#C0392B"/></button>
+          </div>
         </div>)}
       </div>
       {/* Conteúdo do anexo selecionado */}
