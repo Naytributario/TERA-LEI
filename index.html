@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
 <style>
 :root{
@@ -82,7 +83,7 @@ function idT(s){for(const p of PATS)if(p.r.test(s.trim()))return p.t;return null
 function exId(t,s){s=s.trim();if(DIV.has(t))return s;const R={ARTIGO:/^(Art\.\s*\d+[ºo°]?[\-\.]?)/,PARÁGRAFO:/^(§\s*\d+[ºo°]?\.?|Par[áa]grafo\s+[úu]nico\.?)/i,INCISO:/^([IVXLCDM]+)\s*[\-–—]/,ALÍNEA:/^([a-z]\))/,ITEM:/^(\d+\.)/};const m=R[t]?.exec(s);return m?m[1].trim():s.slice(0,30);}
 function exTx(t,s){s=s.trim();if(DIV.has(t))return"";const R={ARTIGO:/^Art\.\s*\d+[ºo°]?[\s\-\.]+(.+)/,PARÁGRAFO:/^(?:§\s*\d+[ºo°]?\.?\s+|Par[áa]grafo\s+[úu]nico\.?\s+)(.+)/i,INCISO:/^[IVXLCDM]+\s*[\-–—]\s+(.+)/,ALÍNEA:/^[a-z]\)\s+(.+)/,ITEM:/^\d+\.\s+(.+)/};const m=R[t]?.exec(s);return m?m[1].trim():s;}
 function parse(txt){const ds=[];let a=null,ag=false;const reAltera=/\[?\s*(Reda[çc][ãa]o dada pel[oa]\(a\)[^\]]*|Inclu[ií]d[oa]\(a\) pel[oa]\(a\)[^\]]*|Revogad[oa]\(a\) pel[oa]\(a\)[^\]]*)\]?/gi;const reVetado=/\(\s*(?:VETADO|Vetado|vetado)\s*\)/;const reRevogado=/\(\s*(?:REVOGADO|Revogado|revogado)\s*\)/;
-  for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){let alteracao="";let status="vigente";const altM=s.match(reAltera);if(altM)alteracao=altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleanTxt=s.replace(reAltera,"").trim();if(reVetado.test(cleanTxt))status="vetado";else if(reRevogado.test(cleanTxt))status="revogado";a={tipo:t,id:exId(t,cleanTxt),rub:"",txt:exTx(t,cleanTxt),status,alteracao};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else{const altM=s.match(reAltera);if(altM){a.alteracao=a.alteracao?(a.alteracao+"; "+altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ")):altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleaned=s.replace(reAltera,"").trim();if(cleaned)a.txt=a.txt?a.txt+" "+cleaned:cleaned;}else{a.txt=a.txt?a.txt+" "+s:s;}}if(reVetado.test(a.txt))a.status="vetado";if(reRevogado.test(a.txt))a.status="revogado";}}return detectVetados(ds);}
+  for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){let alteracao="";let status="vigente";const altM=s.match(reAltera);if(altM)alteracao=altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleanTxt=s.replace(reAltera,"").trim();if(reVetado.test(cleanTxt))status="vetado";else if(reRevogado.test(cleanTxt))status="revogado";if(/revogad/i.test(alteracao))status="revogado";a={tipo:t,id:exId(t,cleanTxt),rub:"",txt:exTx(t,cleanTxt),status,alteracao};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else{const altM=s.match(reAltera);if(altM){a.alteracao=a.alteracao?(a.alteracao+"; "+altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ")):altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleaned=s.replace(reAltera,"").trim();if(cleaned)a.txt=a.txt?a.txt+" "+cleaned:cleaned;}else{a.txt=a.txt?a.txt+" "+s:s;}}if(reVetado.test(a.txt))a.status="vetado";if(reRevogado.test(a.txt))a.status="revogado";if(a.alteracao&&/revogad/i.test(a.alteracao))a.status="revogado";}}return detectVetados(ds);}
 
 function detectVetados(ds){
   // Detecta vetos por IDs duplicados consecutivos (LC 95/1998):
@@ -241,31 +242,105 @@ function Lib({lib,sel,onSel,onDel,onUp,uping,fRef}){return <div className="fade"
 // ═══ READER ═══
 function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
   const [tab,setTab]=useState("texto");const [saved,setSaved]=useState(false);const [goSearch,setGoSearch]=useState("");
-  const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"anexos",lb:`Anexos (${(lei.anexos||[]).length})`},{id:"teia",lb:"🕸 Teia"},{id:"tutor",lb:"Tutor IA"}];
+  const tabs=[{id:"sumario",lb:"Sumário"},{id:"texto",lb:"Texto Integral"},{id:"artigos",lb:"Artigos"},{id:"estudo",lb:"Estudo Guiado"},{id:"remissoes",lb:"Remissões"},{id:"prazos",lb:"Prazos/Valores"},{id:"indice",lb:"Índice"},{id:"mapa",lb:"Mapa"},{id:"anexos",lb:`Anexos (${(lei.anexos||[]).length})`},{id:"teia",lb:"🕸 Teia"},{id:"tutor",lb:"Tutor IA"},{id:"sabatina",lb:"Sabatina"}];
   const ds=lei.ds;
   const showSaved=()=>{setSaved(true);setTimeout(()=>setSaved(false),1500);};
   const wrappedUSt=(a,b,c,d)=>{uSt(a,b,c,d);showSaved();};
 
+  // Extrai refs internas (mesma lei) de um texto, ignorando refs a leis externas
+  const extractInternalRefs = (text) => {
+    const refs = [];
+    // Regex para encontrar todas as menções a artigos
+    const reArt = /arts?\.\s*(\d+[ºo°]?(?:\s*(?:,|e|a)\s*\d+[ºo°]?)*)/gi;
+    // Padrão de lei externa antes da ref (lookbehind manual)
+    const reLeiExterna = /(?:Lei\s+(?:Complementar\s+)?n[ºo°]?\s*[\d.]+|Decreto(?:-Lei)?\s+n[ºo°]?\s*[\d.]+|Medida\s+Provis[óo]ria\s+n[ºo°]?\s*[\d.]+|Instru[çc][ãa]o\s+Normativa\s+[A-Z]+\s+n[ºo°]?\s*[\d.]+|C[óo]digo\s+\w+)\s*(?:,\s*de\s+\d{4}\s*)?(?:,\s*)?$/i;
+    let m;
+    while((m=reArt.exec(text))!==null){
+      // Verifica contexto: 120 chars antes da match
+      const before=text.slice(Math.max(0,m.index-120),m.index);
+      if(reLeiExterna.test(before))continue; // ref externa, ignorar
+      const nums=m[1].match(/\d+[ºo°]?/g)||[];
+      for(const n of nums){const artId="Art. "+n;if(!refs.includes(artId))refs.push(artId);}
+    }
+    return refs;
+  };
+
+  // Encontra o artigo vigente (pula vetados, retorna info de revogado)
+  const findDevice = (artId) => {
+    const cleanId = artId.replace(/^Art\.\s*/i, "").trim();
+    const matches = ds.filter(d => d.tipo === "ARTIGO" && d.id.replace(/[^0-9]/g,"") === cleanId.replace(/[^0-9]/g,""));
+    if (matches.length === 0) return null;
+    // Prioriza vigente, depois revogado
+    const vigente = matches.find(d => d.status === "vigente");
+    if (vigente) return vigente;
+    const revogado = matches.find(d => d.status === "revogado");
+    if (revogado) return revogado;
+    return matches[matches.length - 1]; // última versão
+  };
+
+  // Coleta sub-dispositivos (§, incisos, alíneas) de um artigo
+  const getSubDevices = (artId) => {
+    const subs = [];
+    let inside = false;
+    for (const d of ds) {
+      if (d.tipo === "ARTIGO" && d.id === artId) { inside = true; continue; }
+      if (inside) {
+        if (d.tipo === "ARTIGO" || DIV.has(d.tipo)) break;
+        if (d.status !== "vetado") subs.push(d);
+      }
+    }
+    return subs;
+  };
+
+  // Constrói árvore recursiva de remissões
+  const buildRecursiveTree = (startId, visited = new Set()) => {
+    if (visited.has(startId)) return null;
+    visited.add(startId);
+    const device = findDevice(startId);
+    if (!device) return null;
+
+    const isRevogado = device.status === "revogado";
+    const subs = getSubDevices(device.id);
+    const fullText = [device.txt || "", ...subs.map(s => (s.id || "") + " " + (s.txt || ""))].join(" ");
+
+    // Se revogado, não seguir refs
+    const refs = isRevogado ? [] : extractInternalRefs(fullText);
+    // Remove auto-referência
+    const selfNum = device.id.replace(/[^0-9]/g, "");
+    const filteredRefs = refs.filter(r => r.replace(/[^0-9]/g, "") !== selfNum);
+
+    const children = [];
+    for (const ref of filteredRefs) {
+      const child = buildRecursiveTree(ref, new Set(visited));
+      if (child) children.push(child);
+    }
+
+    return {
+      id: device.id,
+      text: (device.txt || "").trim(),
+      status: device.status || "vigente",
+      alteracao: device.alteracao || "",
+      subs: subs.slice(0, 10), // limita para performance
+      refs: filteredRefs,
+      children
+    };
+  };
+
+  // Mantém compatibilidade com exportação Excel (cadeia linear simplificada)
   const buildRecursiveChain = (startId) => {
     const chain = [];
     const visited = new Set();
     let currentId = startId;
-    const re = /(?:§\s*\d+[ºo°]?\s+d[oe]\s+)?(?:arts?\.\s*)(\d+[ºo°]?(?:\s*(?:,|e|a)\s*\d+[ºo°]?)*)/gi;
-
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
-      const cleanId = currentId.replace(/^Art\.\s*/i, "").trim();
-      const device = ds.find(d => d.tipo === "ARTIGO" && d.id.includes(cleanId));
-      
+      const device = findDevice(currentId);
       if (!device) break;
-      
       const fullText = (device.rub || "") + " " + (device.txt || "");
-      re.lastIndex = 0;
-      const match = re.exec(fullText);
-      const refs = match ? (match[1].match(/\d+[ºo°]?/g) || []).map(r => "Art. " + r) : [];
-      
-      chain.push({ id: device.id, text: fullText.trim(), refs });
-      currentId = refs.length > 0 ? refs[0] : null;
+      const refs = extractInternalRefs(fullText);
+      const selfNum = device.id.replace(/[^0-9]/g, "");
+      const filteredRefs = refs.filter(r => r.replace(/[^0-9]/g, "") !== selfNum);
+      chain.push({ id: device.id, text: fullText.trim(), refs: filteredRefs });
+      currentId = filteredRefs.length > 0 ? filteredRefs[0] : null;
     }
     return chain;
   };
@@ -328,12 +403,13 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
     {tab==="artigos"&&<TabArtigos ds={ds}/>}
     {tab==="estudo"&&<TabEstudo ds={ds} lei={lei} gSt={gSt} uSt={wrappedUSt}/>}
     {tab==="remissoes"&&<TabRemissoes ds={ds}/>}
-    {tab==="teia"&&<TabTeia ds={ds} buildRecursiveChain={buildRecursiveChain}/>}
+    {tab==="teia"&&<TabTeia ds={ds} buildRecursiveTree={buildRecursiveTree} buildRecursiveChain={buildRecursiveChain}/>}
     {tab==="prazos"&&<TabPrazos ds={ds}/>}
     {tab==="indice"&&<TabIndice ds={ds} area={area} onGoToArt={a=>{setGoSearch(a);setTab("texto");}}/>}
     {tab==="mapa"&&<TabMapa ds={ds}/>}
     {tab==="anexos"&&<TabAnexos lei={lei} addAnexo={addAnexo} delAnexo={delAnexo}/>}
     {tab==="tutor"&&<TabTutor lei={lei} area={area} apiKey={apiKey} saveKey={saveKey}/>}
+    {tab==="sabatina"&&<TabSabatina lei={lei} area={area} apiKey={apiKey} saveKey={saveKey}/>}
   </div>;
 }
 
@@ -430,46 +506,67 @@ function TabEstudo({ds,lei,gSt,uSt}){
 
 function TabRemissoes({ds}){const rem=useMemo(()=>extrairRemissoes(ds),[ds]);return <div style={{maxHeight:"70vh",overflow:"auto"}}>{rem.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma remissão encontrada</div>:<table className="dt"><thead><tr><th>Origem</th><th>Dispositivo</th><th>Referência</th><th>Contexto</th></tr></thead><tbody>{rem.map((r,i)=><tr key={i}><td style={{fontWeight:700,color:"var(--gold)"}}>{r.origem}</td><td style={{fontSize:12}}>{r.disp}</td><td style={{fontWeight:600,color:"var(--gold)"}}>{r.destino}</td><td style={{fontSize:12}}>{r.ctx}</td></tr>)}</tbody></table>}</div>;}
 
-function TabTeia({ds, buildRecursiveChain}){
+function TabTeia({ds, buildRecursiveTree, buildRecursiveChain}){
   const [startArt,setStartArt]=useState("");
-  const [chain,setChain]=useState([]);
+  const [tree,setTree]=useState(null);
   const [traced,setTraced]=useState(false);
-  const arts = useMemo(() => ds.filter(d => d.tipo === "ARTIGO").map(d => d.id), [ds]);
+  const arts = useMemo(() => ds.filter(d => d.tipo === "ARTIGO" && d.status !== "vetado").map(d => d.id), [ds]);
 
   const tracar = () => {
     if (!startArt) return;
-    const c = buildRecursiveChain(startArt);
-    setChain(c);
+    const t = buildRecursiveTree(startArt);
+    setTree(t);
     setTraced(true);
+  };
+
+  const TreeNode = ({node, depth = 0, isLast = true}) => {
+    if (!node) return null;
+    const isRevogado = node.status === "revogado";
+    const hasChildren = node.children && node.children.length > 0;
+    return <div style={{marginLeft: depth > 0 ? 24 : 0, position: "relative"}}>
+      {depth > 0 && <div style={{position:"absolute",left:-16,top:0,width:12,height:20,borderLeft:"2px solid var(--gold)",borderBottom:"2px solid var(--gold)",borderRadius:"0 0 0 6px"}}/>}
+      <div className="cd" style={{padding:"12px 16px",marginBottom:8,borderColor:isRevogado?"#e74c3c":"var(--gold)",opacity:isRevogado?0.7:1,position:"relative"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+          <span style={{background:isRevogado?"#e74c3c":"var(--grad)",color:"#fff",padding:"2px 10px",borderRadius:12,fontSize:12,fontWeight:700}}>{node.id}</span>
+          {isRevogado&&<span className="badge badge-revogado">REVOGADO</span>}
+          {node.status==="vigente"&&<span className="badge badge-vigente">VIGENTE</span>}
+        </div>
+        <div style={{fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap",textDecoration:isRevogado?"line-through":"none"}}>{node.text}</div>
+        {node.subs&&node.subs.length>0&&<div style={{marginTop:6,paddingTop:6,borderTop:"1px dashed var(--border)"}}>
+          {node.subs.map((s,j)=><div key={j} style={{fontSize:12,lineHeight:1.5,color:"var(--text-sec)",paddingLeft:12,marginTop:2}}>
+            <span style={{color:"var(--gold)",fontWeight:600,marginRight:4}}>{s.id}</span>{s.txt}
+            {s.status==="revogado"&&<span className="badge badge-revogado" style={{marginLeft:4}}>REVOGADO</span>}
+          </div>)}
+        </div>}
+        {node.alteracao&&<div style={{marginTop:4,padding:"2px 8px",background:"rgba(52,152,219,0.08)",borderLeft:"2px solid #3498db",borderRadius:3,fontSize:11,color:"#3498db"}}>↳ {node.alteracao}</div>}
+        {isRevogado&&<div style={{marginTop:6,fontSize:11,color:"#e74c3c",fontStyle:"italic"}}>Dispositivo revogado — ramificações não seguidas.</div>}
+        {node.refs.length > 0 && !isRevogado && <div style={{marginTop:6,fontSize:11,color:"var(--text-sec)"}}>Remissões internas: {node.refs.join(", ")}</div>}
+      </div>
+      {hasChildren && <div style={{paddingLeft:8}}>
+        {node.children.map((child, i) => <TreeNode key={child?.id||i} node={child} depth={depth + 1} isLast={i === node.children.length - 1}/>)}
+      </div>}
+    </div>;
   };
 
   return <div style={{display:"flex",gap:16,height:"70vh"}}>
     <div style={{width:250,display:"flex",flexDirection:"column",gap:10}}>
-      <div style={{fontSize:13,fontWeight:700,color:"var(--gold)"}}>TRAÇAR CAMINHO</div>
+      <div style={{fontSize:13,fontWeight:700,color:"var(--gold)"}}>TRAÇAR TEIA</div>
       <select value={startArt} onChange={e=>setStartArt(e.target.value)} style={{padding:"8px",borderRadius:6,fontSize:13}}>
         <option value="">Selecione o Artigo...</option>
         {arts.map(a=><option key={a} value={a}>{a}</option>)}
       </select>
-      <button onClick={tracar} style={{padding:"10px",background:"var(--grad)",color:"#fff",border:"none",borderRadius:7,fontWeight:600,cursor:"pointer"}}>Traçar Teia Recursiva</button>
-      <div style={{fontSize:11,color:"var(--text-sec)",lineHeight:1.4}}>A teia seguirá automaticamente a primeira remissão encontrada em cada dispositivo até o fim da cadeia.</div>
+      <button onClick={tracar} style={{padding:"10px",background:"var(--grad)",color:"#fff",border:"none",borderRadius:7,fontWeight:600,cursor:"pointer"}}>Traçar Teia</button>
+      <div style={{fontSize:11,color:"var(--text-sec)",lineHeight:1.5}}>
+        A teia segue <b>todas</b> as remissões internas (mesma lei) recursivamente, formando uma árvore.<br/><br/>
+        Referências a outras leis são ignoradas.<br/>
+        Dispositivos <span style={{color:"#e74c3c"}}>revogados</span> são sinalizados e não ramificam.<br/>
+        Dispositivos vetados mostram apenas a versão vigente.
+      </div>
     </div>
     <div style={{flex:1,overflow:"auto",padding:"10px",background:"var(--bg-hover)",borderRadius:12,border:"1px solid var(--border)"}}>
-      {!traced ? <div style={{textAlign:"center",paddingTop:100,color:"var(--text-sec)"}}>Selecione um artigo para ver a teia de aranha das remissões.</div>
-      : chain.length === 0 ? <div style={{textAlign:"center",paddingTop:100}}>Nenhum caminho encontrado.</div>
-      : <div style={{display:"flex",flexDirection:"column",gap:20}}>
-          {chain.map((node, i) => (
-            <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-              <div className="cd" style={{width:"100%",padding:"16px",position:"relative",borderColor:"var(--gold)"}}>
-                <div style={{position:"absolute",left:-10,top:15,width:24,height:24,borderRadius:"50%",background:"var(--gold)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700}}>{i+1}</div>
-                <div style={{fontWeight:700,color:"var(--gold)",marginBottom:8,marginLeft:15}}>{node.id}</div>
-                <div style={{fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{node.text}</div>
-                {node.refs.length > 1 && <div style={{marginTop:10,fontSize:11,color:"var(--text-sec)"}}>Também cita: {node.refs.slice(1).join(", ")}</div>}
-              </div>
-              {i < chain.length - 1 && <div style={{fontSize:24,color:"var(--gold)"}}>↓</div>}
-            </div>
-          ))}
-        </div>
-      }
+      {!traced ? <div style={{textAlign:"center",paddingTop:100,color:"var(--text-sec)"}}>Selecione um artigo para ver a teia de remissões internas.</div>
+      : !tree ? <div style={{textAlign:"center",paddingTop:100}}>Artigo não encontrado ou sem dispositivo vigente.</div>
+      : <TreeNode node={tree} depth={0}/>}
     </div>
   </div>;
 }
@@ -478,10 +575,12 @@ function TabPrazos({ds}){const pv=useMemo(()=>extrairPrazosValores(ds),[ds]);ret
 
 function TabIndice({ds,area,onGoToArt}){
   const [filtro,setFiltro]=useState("");
+  const [expandedIdx,setExpandedIdx]=useState(null);
   const idxPredefinido=useMemo(()=>buildIdx(ds,area),[ds,area]);
   const resultadosBusca=useMemo(()=>fullTextSearch(ds,filtro),[ds,filtro]);
   const totalOcorrencias=useMemo(()=>resultadosBusca.reduce((s,r)=>s+r.ocorrencias,0),[resultadosBusca]);
   const buscaAtiva=filtro.trim().length>=3;
+  const ctx=useMemo(()=>hierarquia(ds),[ds]);
 
   const highlightText=(text,term)=>{
     if(!term||term.length<3||!text)return text;
@@ -490,17 +589,30 @@ function TabIndice({ds,area,onGoToArt}){
     return parts.map((p,i)=>re.test(p)?React.createElement("mark",{key:i,style:{background:"rgba(212,168,83,0.35)",padding:"0 1px",borderRadius:2}},p):p);
   };
 
+  // Coleta todos os dispositivos de um artigo para o painel expandido
+  const getArtigoDisps=(artId)=>{
+    const result=[];let inside=false;
+    for(const d of ds){
+      if(d.tipo==="ARTIGO"&&d.id===artId){inside=true;result.push(d);continue;}
+      if(inside){
+        if(d.tipo==="ARTIGO"||DIV.has(d.tipo))break;
+        result.push(d);
+      }
+    }
+    return result;
+  };
+
   return <div>
     <div style={{marginBottom:12}}>
-      <input value={filtro} onChange={e=>setFiltro(e.target.value)} placeholder="Buscar qualquer palavra (mínimo 3 caracteres)..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/>
+      <input value={filtro} onChange={e=>{setFiltro(e.target.value);setExpandedIdx(null);}} placeholder="Buscar qualquer palavra (mínimo 3 caracteres)..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/>
       {buscaAtiva&&<div style={{marginTop:6,fontSize:12,color:"var(--text-sec)"}}>{totalOcorrencias} ocorrência(s) em {resultadosBusca.length} dispositivo(s)</div>}
     </div>
     {buscaAtiva?
       (resultadosBusca.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhum dispositivo encontrado para "{filtro}"</div>
       :<div style={{maxHeight:"65vh",overflow:"auto",border:"1px solid var(--border)",borderRadius:8}}>
         <table className="dt"><thead><tr><th style={{width:60}}>#</th><th style={{width:80}}>Tipo</th><th style={{width:100}}>Id</th><th style={{width:80}}>Artigo</th><th>Texto</th><th style={{width:40}}>Qtd</th></tr></thead>
-        <tbody>{resultadosBusca.map((r,i)=>
-          <tr key={i} style={{opacity:r.status==="vetado"||r.status==="revogado"?0.5:1,cursor:"pointer"}} onClick={()=>onGoToArt(r.art||r.id)}>
+        <tbody>{resultadosBusca.map((r,i)=><React.Fragment key={i}>
+          <tr style={{opacity:r.status==="vetado"||r.status==="revogado"?0.5:1,cursor:"pointer",background:expandedIdx===i?"var(--gold-subtle)":"inherit"}} onClick={()=>setExpandedIdx(expandedIdx===i?null:i)}>
             <td>{i+1}</td>
             <td><span className="badge" style={{background:"var(--gold-subtle)",color:"var(--gold)"}}>{r.tipo}</span></td>
             <td style={{fontSize:12,fontWeight:600}}>{r.id}</td>
@@ -508,7 +620,24 @@ function TabIndice({ds,area,onGoToArt}){
             <td style={{fontSize:12,lineHeight:1.5}}>{highlightText((r.txt||"").slice(0,300)+(r.txt?.length>300?"...":""),filtro)}</td>
             <td style={{fontWeight:700,textAlign:"center",color:"var(--gold)"}}>{r.ocorrencias}</td>
           </tr>
-        )}</tbody></table>
+          {expandedIdx===i&&<tr><td colSpan={6} style={{padding:0}}>
+            <div style={{padding:"12px 16px",background:"var(--bg-hover)",borderLeft:"3px solid var(--gold)"}}>
+              {ctx[r.art]&&<div style={{fontSize:11,color:"var(--text-sec)",marginBottom:8,fontStyle:"italic"}}>{ctx[r.art]}</div>}
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {getArtigoDisps(r.art||r.id).map((d,j)=>{
+                  const isMatch=(d.txt||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(filtro.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""));
+                  return <div key={j} style={{padding:"4px 8px",borderRadius:4,background:isMatch?"rgba(212,168,83,0.1)":"transparent",fontSize:12,lineHeight:1.6}}>
+                    <span style={{color:"var(--gold)",fontWeight:600,marginRight:6}}>{d.id}</span>
+                    {highlightText(d.txt||"",filtro)}
+                    {d.status==="vetado"&&<span className="badge badge-revogado" style={{marginLeft:6}}>VETADO</span>}
+                    {d.status==="revogado"&&<span className="badge badge-revogado" style={{marginLeft:6}}>REVOGADO</span>}
+                  </div>;
+                })}
+              </div>
+              <button onClick={(e)=>{e.stopPropagation();onGoToArt(r.art||r.id);}} style={{marginTop:8,padding:"4px 12px",background:"var(--grad)",color:"#fff",border:"none",borderRadius:5,fontSize:11,cursor:"pointer",fontWeight:600}}>Ir para Texto Integral →</button>
+            </div>
+          </td></tr>}
+        </React.Fragment>)}</tbody></table>
       </div>)
     :<div>
       <div style={{fontSize:12,color:"var(--text-sec)",marginBottom:10}}>Palavras-chave do índice ({AREAS[area]?.nome}):</div>
@@ -533,7 +662,20 @@ function TabMapa({ds}){const estrutura=useMemo(()=>{const mapa=[];let tituloAtua
     else if(d.tipo==="ARTIGO"){const art=d.id;if(secAtual){secAtual.artigos.push(art);}else if(capAtual){capAtual.artigos.push(art);}else if(tituloAtual){tituloAtual.artigos.push(art);}}}
   return mapa;},[ds]);
 
-  const renderArtigos=(arts)=>arts.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>{arts.map(a=><span key={a} style={{background:"var(--gold-subtle)",color:"var(--gold)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{a}</span>)}</div>;
+  const renderArtigos=(arts)=>{
+    if(!arts||arts.length===0)return null;
+    // Agrupa artigos consecutivos em intervalos
+    const extractNum=a=>{const m=a.match(/(\d+)/);return m?parseInt(m[1],10):0;};
+    const sorted=[...arts].sort((a,b)=>extractNum(a)-extractNum(b));
+    const groups=[];let grp=[sorted[0]];
+    for(let i=1;i<sorted.length;i++){
+      if(extractNum(sorted[i])-extractNum(sorted[i-1])===1){grp.push(sorted[i]);}
+      else{groups.push(grp);grp=[sorted[i]];}
+    }
+    groups.push(grp);
+    const labels=groups.map(g=>g.length>=3?g[0]+" a "+g[g.length-1]:g.join(", "));
+    return <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>{labels.map((l,i)=><span key={i} style={{background:"var(--gold-subtle)",color:"var(--gold)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{l}</span>)}</div>;
+  };
 
   const renderSec=(s,i)=><div key={i} style={{marginLeft:16,marginTop:6,padding:"6px 10px",borderLeft:"2px solid var(--border)",background:"var(--bg-hover)",borderRadius:"0 6px 6px 0"}}>
     <div style={{fontSize:12,color:"var(--text-sec)"}}><b style={{color:"var(--gold)"}}>{s.id}</b> — {s.rub}</div>
@@ -596,6 +738,144 @@ function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);c
   </div>;
 }
 
+// ═══ SABATINA ═══
+function TabSabatina({lei,area,apiKey,saveKey}){
+  const [perguntas,setPerguntas]=useState(()=>LS("t3-sab-"+lei.id)||[]);
+  const [respostas,setRespostas]=useState(()=>LS("t3-sab-r-"+lei.id)||{});
+  const [correcoes,setCorrecoes]=useState(()=>LS("t3-sab-c-"+lei.id)||{});
+  const [loading,setLoading]=useState({});
+  const [uploading,setUploading]=useState(false);
+  const [localKey,setLocalKey]=useState(apiKey);
+  const fRef=useRef(null);
+
+  const salvarRespostas=(novas)=>{setRespostas(novas);LS("t3-sab-r-"+lei.id,novas);};
+  const salvarCorrecoes=(novas)=>{setCorrecoes(novas);LS("t3-sab-c-"+lei.id,novas);};
+
+  const uploadDocx=async(e)=>{
+    const f=e.target.files?.[0];if(!f)return;
+    setUploading(true);
+    try{
+      const ab=await f.arrayBuffer();
+      const result=await mammoth.extractRawText({arrayBuffer:ab});
+      const text=result.value||"";
+      // Extrai perguntas numeradas (1. Pergunta... 2. Pergunta... etc)
+      const lines=text.split("\n").map(l=>l.trim()).filter(Boolean);
+      const qs=[];let current="";
+      for(const line of lines){
+        const match=line.match(/^(\d+)\s*[\.\)\-]\s*(.+)/);
+        if(match){
+          if(current)qs.push(current);
+          current=match[2].trim();
+        }else if(current){
+          current+=" "+line;
+        }
+      }
+      if(current)qs.push(current);
+      if(qs.length>0){
+        setPerguntas(qs);LS("t3-sab-"+lei.id,qs);
+        setRespostas({});LS("t3-sab-r-"+lei.id,{});
+        setCorrecoes({});LS("t3-sab-c-"+lei.id,{});
+      }else{alert("Não foram encontradas perguntas numeradas no documento. Use o formato: 1. Pergunta\\n2. Pergunta...");}
+    }catch(e){alert("Erro ao processar .docx: "+e.message);}
+    setUploading(false);
+    if(fRef.current)fRef.current.value="";
+  };
+
+  const corrigir=async(idx)=>{
+    if(!apiKey){alert("Configure a API Key primeiro.");return;}
+    const pergunta=perguntas[idx];
+    const resposta=respostas[idx]||"";
+    if(!resposta.trim()){alert("Escreva sua resposta antes de solicitar a correção.");return;}
+    setLoading(p=>({...p,[idx]:true}));
+    try{
+      // Coleta contexto relevante da lei (artigos com termos-chave da pergunta)
+      const termos=pergunta.toLowerCase().split(/\s+/).filter(t=>t.length>3);
+      const artigosRelevantes=lei.ds.filter(d=>{
+        if(d.status==="vetado")return false;
+        const txt=((d.txt||"")+" "+(d.id||"")+" "+(d.rub||"")).toLowerCase();
+        return termos.some(t=>txt.includes(t));
+      }).slice(0,30).map(d=>`[${d.tipo} ${d.id}] ${d.txt}`).join("\n");
+
+      const systemPrompt=`Você é um professor jurídico tributário especialista em ${AREAS[area]?.nome}, atuando como examinador oral rigoroso mas justo.
+Sua função é corrigir a resposta do aluno com base EXCLUSIVAMENTE na lei "${lei.nome}".
+
+CONTEXTO DA LEI (dispositivos relevantes):
+${artigosRelevantes || "(Nenhum dispositivo relevante encontrado — use seu conhecimento da lei)"}
+
+REGRAS DE CORREÇÃO:
+1. Analise se a resposta está CORRETA, PARCIALMENTE CORRETA ou INCORRETA
+2. Aponte o que está certo e o que precisa ser melhorado
+3. SEMPRE cite a base legal específica (artigo, parágrafo, inciso) da lei "${lei.nome}"
+4. Se a resposta estiver incompleta, indique o que faltou com a referência legal
+5. Seja técnico mas didático — como um professor em banca de exame oral
+6. Responda em português brasileiro`;
+
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2048,system:systemPrompt,messages:[{role:"user",content:`PERGUNTA DA SABATINA:\n${pergunta}\n\nRESPOSTA DO ALUNO:\n${resposta}\n\nCorrija a resposta acima com base legal específica na lei "${lei.nome}".`}]})});
+      const d=await r.json();
+      const texto=d.content?.[0]?.text||"Erro na correção.";
+      const novas={...correcoes,[idx]:texto};
+      salvarCorrecoes(novas);
+    }catch(e){
+      const novas={...correcoes,[idx]:"Erro: "+e.message};
+      salvarCorrecoes(novas);
+    }
+    setLoading(p=>({...p,[idx]:false}));
+  };
+
+  const limparTudo=()=>{if(confirm("Limpar todas as perguntas, respostas e correções desta sabatina?")){
+    setPerguntas([]);setRespostas({});setCorrecoes({});
+    LS("t3-sab-"+lei.id,null);LS("t3-sab-r-"+lei.id,null);LS("t3-sab-c-"+lei.id,null);
+  }};
+
+  if(!apiKey)return <div className="cd" style={{padding:20}}><div style={{fontWeight:700,marginBottom:10}}>Configurar API Key para Correção IA</div><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-..." style={{width:"100%",padding:10,marginBottom:10,borderRadius:6}}/><button onClick={()=>saveKey(localKey)} className="btn-primary">Salvar</button></div>;
+
+  return <div className="fade">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div>
+        <h3 style={{margin:0,fontSize:16}}>Sabatina — {lei.nome}</h3>
+        <div style={{fontSize:12,color:"var(--text-sec)",marginTop:2}}>{perguntas.length} pergunta(s) carregada(s)</div>
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        <label style={{display:"inline-flex",alignItems:"center",gap:5,padding:"7px 14px",background:"var(--grad)",color:"#fff",borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600}}>
+          {uploading?<><Sp/> Processando...</>:<><Ic d={IC.up} s={13} c="#fff"/> Carregar .docx</>}
+          <input ref={fRef} type="file" accept=".docx" onChange={uploadDocx} style={{display:"none"}}/>
+        </label>
+        {perguntas.length>0&&<button onClick={limparTudo} className="btn-secondary" style={{fontSize:12,padding:"7px 12px",color:"var(--err)"}}>Limpar</button>}
+      </div>
+    </div>
+
+    {perguntas.length===0?
+      <div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>
+        <div style={{fontSize:48,marginBottom:12}}>📝</div>
+        <div style={{fontSize:16,marginBottom:8}}>Nenhuma sabatina carregada</div>
+        <div style={{fontSize:13,lineHeight:1.6}}>Faça upload de um arquivo .docx com perguntas numeradas.<br/>Formato esperado:<br/><code style={{background:"var(--bg-hover)",padding:"2px 6px",borderRadius:3}}>1. Pergunta um?<br/>2. Pergunta dois?</code></div>
+      </div>
+    :<div style={{display:"flex",flexDirection:"column",gap:16,maxHeight:"68vh",overflow:"auto",paddingRight:8}}>
+      {perguntas.map((p,idx)=><div key={idx} className="cd" style={{padding:16}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
+          <span style={{background:"var(--grad)",color:"#fff",minWidth:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0}}>{idx+1}</span>
+          <div style={{fontSize:14,fontWeight:600,lineHeight:1.5,flex:1}}>{p}</div>
+        </div>
+        <textarea
+          value={respostas[idx]||""}
+          onChange={e=>{const novas={...respostas,[idx]:e.target.value};salvarRespostas(novas);}}
+          placeholder="Escreva sua resposta aqui..."
+          style={{width:"100%",minHeight:100,background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,padding:"10px 12px",fontSize:13,lineHeight:1.6,resize:"vertical",fontFamily:"inherit",boxSizing:"border-box"}}
+        />
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+          <button onClick={()=>corrigir(idx)} disabled={loading[idx]} style={{padding:"8px 16px",background:loading[idx]?"var(--bg-hover)":"var(--grad)",color:loading[idx]?"var(--text-sec)":"#fff",border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:loading[idx]?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:6}}>
+            {loading[idx]?<><Sp/> Corrigindo...</>:"✏️ Corrigir com IA"}
+          </button>
+        </div>
+        {correcoes[idx]&&<div style={{marginTop:10,padding:"12px 16px",background:"var(--bg-hover)",borderRadius:8,borderLeft:"3px solid var(--gold)",fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>
+          <div style={{fontWeight:700,color:"var(--gold)",marginBottom:6,fontSize:12}}>CORREÇÃO DO PROFESSOR IA</div>
+          {correcoes[idx]}
+        </div>}
+      </div>)}
+    </div>}
+  </div>;
+}
+
 // ═══ REFORMA ═══
 const REFORMA=[
   {n:"EC 132/2023",d:"Emenda Constitucional da Reforma Tributária. Institui IBS, CBS e Imposto Seletivo em substituição a PIS, COFINS, IPI, ICMS e ISS. Período de transição: 2026-2033.",url:"https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc132.htm"},
@@ -652,20 +932,27 @@ function Atl({apiKey,saveKey}){
   const [filtroPortal,setFiltroPortal]=useState("");
   const [filtroData,setFiltroData]=useState("");
   const [erro,setErro]=useState("");
+  const [sucesso,setSucesso]=useState("");
 
-  const buscar=async()=>{setLd(true);setErro("");
+  const buscar=async()=>{setLd(true);setErro("");setSucesso("");
     try{
       const r=await fetch(DATA_URL+"?t="+Date.now());
-      if(!r.ok)throw new Error("Arquivo de atualizações não encontrado ("+r.status+"). Execute o workflow do GitHub Actions ou aguarde a próxima atualização automática.");
+      if(!r.ok)throw new Error("Arquivo de atualizações não encontrado ("+r.status+"). Verifique se o workflow do GitHub Actions foi executado e se o arquivo data/atualizacoes.json existe no repositório.");
       const data=await r.json();
       if(data.itens&&Array.isArray(data.itens)){
-        // Mesclar com itens existentes (evitar duplicatas por link)
-        const linksExist=new Set(itens.map(i=>i.link));
-        const novos=data.itens.filter(i=>!linksExist.has(i.link));
-        const merged=[...novos,...itens].sort((a,b)=>b.data.localeCompare(a.data));
-        setItens(merged);LS("t3-upd-v2",merged);
-        setUltimaAtt(data.ultima_atualizacao||new Date().toISOString());
-        LS("t3-upd-dt",data.ultima_atualizacao||new Date().toISOString());
+        if(data.itens.length===0){
+          setSucesso("Busca concluída — o servidor retornou 0 itens. O script Python pode não estar encontrando publicações nas fontes (sites governamentais podem ter alterado a estrutura). Verifique os logs do GitHub Actions.");
+          setUltimaAtt(data.ultima_atualizacao||new Date().toISOString());
+          LS("t3-upd-dt",data.ultima_atualizacao||new Date().toISOString());
+        }else{
+          const linksExist=new Set(itens.map(i=>i.link));
+          const novos=data.itens.filter(i=>!linksExist.has(i.link));
+          const merged=[...novos,...itens].sort((a,b)=>b.data.localeCompare(a.data));
+          setItens(merged);LS("t3-upd-v2",merged);
+          setUltimaAtt(data.ultima_atualizacao||new Date().toISOString());
+          LS("t3-upd-dt",data.ultima_atualizacao||new Date().toISOString());
+          setSucesso("Busca concluída — "+novos.length+" novo(s) item(ns) adicionado(s). Total: "+merged.length+" itens.");
+        }
       }else{setErro("Formato de dados inesperado no arquivo JSON.");}
     }catch(e){setErro(e.message);}setLd(false);};
 
@@ -703,6 +990,7 @@ function Atl({apiKey,saveKey}){
       </div>
     </div>
     {erro&&<div style={{background:"rgba(231,76,60,0.1)",border:"1px solid #e74c3c",borderRadius:8,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#e74c3c"}}>{erro}</div>}
+    {sucesso&&<div style={{background:"rgba(46,204,113,0.1)",border:"1px solid #2ecc71",borderRadius:8,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#2ecc71"}}>{sucesso}</div>}
     {itens.length>0&&<div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
       <input value={filtro} onChange={e=>setFiltro(e.target.value)} placeholder="Filtrar por nome ou texto..." style={{flex:"1 1 200px",padding:"8px 12px",borderRadius:6,fontSize:13,background:"var(--bg-hover)",border:"1px solid var(--border)"}}/>
       <select value={filtroPortal} onChange={e=>setFiltroPortal(e.target.value)} style={{padding:"8px",borderRadius:6,fontSize:12}}>
