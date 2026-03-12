@@ -74,15 +74,46 @@ function getCS(v){return getComputedStyle(document.body).getPropertyValue(v).tri
 const AREAS={tributario:{nome:"Tributário",palavras:["microempresa","empresa de pequeno porte","simples nacional","receita bruta","alíquota","base de cálculo","fato gerador","contribuinte","sujeito passivo","obrigação tributária","crédito tributário","lançamento","isenção","imunidade","prescrição","decadência","compensação","multa","juros","mora","ICMS","ISS","IPI","PIS","COFINS","IRPJ","CSLL","INSS","nota fiscal","escrituração","declaração","MEI","parcelamento","certidão negativa","substituição tributária","dívida ativa","execução fiscal","IBS","CBS","imposto seletivo","IVA","não cumulatividade","cashback","split payment","comitê gestor"]},civil:{nome:"Civil",palavras:["capacidade civil","casamento","divórcio","propriedade","posse","usucapião","contrato","obrigação","dano moral","indenização","sucessão","herança","testamento","inventário"]},penal:{nome:"Penal",palavras:["crime","dolo","culpa","pena","reclusão","legítima defesa","tentativa","reincidência","homicídio","furto","roubo","habeas corpus"]},trabalhista:{nome:"Trabalhista",palavras:["empregado","empregador","CLT","salário","horas extras","férias","FGTS","aviso prévio","rescisão","justa causa","terceirização","convenção coletiva"]},constitucional:{nome:"Constitucional",palavras:["direitos fundamentais","liberdade","igualdade","contraditório","ampla defesa","mandado de segurança","dignidade","cláusula pétrea","STF","medida provisória"]},administrativo:{nome:"Administrativo",palavras:["administração pública","servidor público","licitação","pregão","contrato administrativo","concessão","poder de polícia","improbidade","PAD"]}};
 
 // Parser
-const PATS=[{t:"TÍTULO",r:/^\s*T[ÍI]TULO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"CAPÍTULO",r:/^\s*CAP[ÍI]TULO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"SEÇÃO",r:/^\s*SE[ÇC][ÃA]O\s+(?:[IVXLCDM]+|ÚNICA)\s*$/i},{t:"SUBSEÇÃO",r:/^\s*SUBSE[ÇC][ÃA]O\s+(?:[IVXLCDM]+|ÚNICA)\s*$/i},{t:"ARTIGO",r:/^\s*Art\.\s*\d+[ºo°]?[\s\-\.]+/},{t:"PARÁGRAFO",r:/^\s*(?:§\s*\d+[ºo°]?\.?\s|Par[áa]grafo\s+[úu]nico\.?\s)/i},{t:"INCISO",r:/^\s*[IVXLCDM]+\s*[\-–—]\s+/},{t:"ALÍNEA",r:/^\s*[a-z]\)\s+/},{t:"ITEM",r:/^\s*\d+\.\s+/}];
-const DIV=new Set(["TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"]);
-const CT={get TÍTULO(){return getCS("--gold")},get CAPÍTULO(){return getCS("--gold-bright")},get SEÇÃO(){return getCS("--border")},get SUBSEÇÃO(){return getCS("--bg-hover")}};
+const PATS=[{t:"PARTE",r:/^\s*PARTE\s+(?:GERAL|ESPECIAL|[IVXLCDM]+|PRELIMINAR)\s*$/i},{t:"LIVRO",r:/^\s*LIVRO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"TÍTULO",r:/^\s*T[ÍI]TULO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"CAPÍTULO",r:/^\s*CAP[ÍI]TULO\s+(?:[IVXLCDM]+|ÚNICO)\s*$/i},{t:"SEÇÃO",r:/^\s*SE[ÇC][ÃA]O\s+(?:[IVXLCDM]+|ÚNICA)\s*$/i},{t:"SUBSEÇÃO",r:/^\s*SUBSE[ÇC][ÃA]O\s+(?:[IVXLCDM]+|ÚNICA)\s*$/i},{t:"ARTIGO",r:/^\s*Art\.\s*\d+[ºo°]?[\s\-\.]+/},{t:"PARÁGRAFO",r:/^\s*(?:§\s*\d+[ºo°]?\.?\s|Par[áa]grafo\s+[úu]nico\.?\s)/i},{t:"INCISO",r:/^\s*[IVXLCDM]+\s*[\-–—]\s+/},{t:"ALÍNEA",r:/^\s*[a-z]\)\s+/},{t:"ITEM",r:/^\s*\d+\.\s+/}];
+const DIV=new Set(["PARTE","LIVRO","TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"]);
+const CT={get PARTE(){return getCS("--gold")},get LIVRO(){return getCS("--gold")},get TÍTULO(){return getCS("--gold")},get CAPÍTULO(){return getCS("--gold-bright")},get SEÇÃO(){return getCS("--border")},get SUBSEÇÃO(){return getCS("--bg-hover")}};
 
 function idT(s){for(const p of PATS)if(p.r.test(s.trim()))return p.t;return null;}
 function exId(t,s){s=s.trim();if(DIV.has(t))return s;const R={ARTIGO:/^(Art\.\s*\d+[ºo°]?[\-\.]?)/,PARÁGRAFO:/^(§\s*\d+[ºo°]?\.?|Par[áa]grafo\s+[úu]nico\.?)/i,INCISO:/^([IVXLCDM]+)\s*[\-–—]/,ALÍNEA:/^([a-z]\))/,ITEM:/^(\d+\.)/};const m=R[t]?.exec(s);return m?m[1].trim():s.slice(0,30);}
 function exTx(t,s){s=s.trim();if(DIV.has(t))return"";const R={ARTIGO:/^Art\.\s*\d+[ºo°]?[\s\-\.]+(.+)/,PARÁGRAFO:/^(?:§\s*\d+[ºo°]?\.?\s+|Par[áa]grafo\s+[úu]nico\.?\s+)(.+)/i,INCISO:/^[IVXLCDM]+\s*[\-–—]\s+(.+)/,ALÍNEA:/^[a-z]\)\s+(.+)/,ITEM:/^\d+\.\s+(.+)/};const m=R[t]?.exec(s);return m?m[1].trim():s;}
 function parse(txt){const ds=[];let a=null,ag=false;const reAltera=/\[?\s*(Reda[çc][ãa]o dada pel[oa]\(a\)[^\]]*|Inclu[ií]d[oa]\(a\) pel[oa]\(a\)[^\]]*|Revogad[oa]\(a\) pel[oa]\(a\)[^\]]*)\]?/gi;const reVetado=/\(\s*(?:VETADO|Vetado|vetado)\s*\)/;const reRevogado=/\(\s*(?:REVOGADO|Revogado|revogado)\s*\)/;
-  for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){let alteracao="";let status="vigente";const altM=s.match(reAltera);if(altM)alteracao=altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleanTxt=s.replace(reAltera,"").trim();if(reVetado.test(cleanTxt))status="vetado";else if(reRevogado.test(cleanTxt))status="revogado";a={tipo:t,id:exId(t,cleanTxt),rub:"",txt:exTx(t,cleanTxt),status,alteracao};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else{const altM=s.match(reAltera);if(altM){a.alteracao=a.alteracao?(a.alteracao+"; "+altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ")):altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleaned=s.replace(reAltera,"").trim();if(cleaned)a.txt=a.txt?a.txt+" "+cleaned:cleaned;}else{a.txt=a.txt?a.txt+" "+s:s;}}if(reVetado.test(a.txt))a.status="vetado";if(reRevogado.test(a.txt))a.status="revogado";}}return ds;}
+  for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){let alteracao="";let status="vigente";const altM=s.match(reAltera);if(altM)alteracao=altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleanTxt=s.replace(reAltera,"").trim();if(reVetado.test(cleanTxt))status="vetado";else if(reRevogado.test(cleanTxt))status="revogado";a={tipo:t,id:exId(t,cleanTxt),rub:"",txt:exTx(t,cleanTxt),status,alteracao};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else{const altM=s.match(reAltera);if(altM){a.alteracao=a.alteracao?(a.alteracao+"; "+altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ")):altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleaned=s.replace(reAltera,"").trim();if(cleaned)a.txt=a.txt?a.txt+" "+cleaned:cleaned;}else{a.txt=a.txt?a.txt+" "+s:s;}}if(reVetado.test(a.txt))a.status="vetado";if(reRevogado.test(a.txt))a.status="revogado";}}return detectVetados(ds);}
+
+function detectVetados(ds){
+  // Detecta vetos por IDs duplicados consecutivos (LC 95/1998):
+  // Quando o mesmo dispositivo (mesmo tipo + mesmo identificador normalizado)
+  // aparece mais de uma vez em sequência, as versões anteriores estão vetadas/superadas.
+  // A última ocorrência é a versão vigente (pode ter "Redação dada pela...").
+  const normId=id=>(id||"").replace(/[^a-zA-Z0-9ºo°§úÚ]/g,"").toLowerCase();
+  for(let i=0;i<ds.length;i++){
+    if(DIV.has(ds[i].tipo)||ds[i].status!=="vigente")continue;
+    const myNorm=normId(ds[i].id);if(!myNorm)continue;
+    // Procura adiante: pula divisões e dispositivos filhos, busca mesmo tipo+id
+    let j=i+1;
+    // Coleta o bloco de filhos do dispositivo atual
+    const nivHier={"ARTIGO":0,"PARÁGRAFO":1,"INCISO":2,"ALÍNEA":3,"ITEM":4};
+    const meuNiv=nivHier[ds[i].tipo];
+    if(meuNiv===undefined)continue;
+    while(j<ds.length){
+      if(DIV.has(ds[j].tipo)){j++;continue;}
+      const outroNiv=nivHier[ds[j].tipo];
+      if(outroNiv===undefined){j++;continue;}
+      // Se encontrou mesmo tipo com mesmo ID = versão anterior é vetada
+      if(ds[j].tipo===ds[i].tipo&&normId(ds[j].id)===myNorm){
+        ds[i].status="vetado";break;
+      }
+      // Se encontrou dispositivo do mesmo nível ou superior com ID diferente, para
+      if(outroNiv<=meuNiv&&normId(ds[j].id)!==myNorm)break;
+      j++;
+    }
+  }
+  return ds;
+}
 
 // Analysis functions
 function extrairRemissoes(ds){const re=/(?:§\s*\d+[ºo°]?\s+d[oe]\s+)?(?:arts?\.\s*)(\d+[ºo°]?(?:\s*(?:,|e|a)\s*\d+[ºo°]?)*)/gi;const res=[];let art="";
@@ -94,7 +125,22 @@ function extrairPrazosValores(ds){const reVal=/R\$\s*[\d\.]+,\d{2}/g;const rePct
 
 function buildIdx(ds,area){const ws=AREAS[area]?.palavras||[];const idx={};let art="";for(const d of ds){if(d.tipo==="ARTIGO")art=d.id;const t=(d.txt+" "+d.rub).toLowerCase();for(const w of ws)if(t.includes(w.toLowerCase())&&art){if(!idx[w])idx[w]=[];if(!idx[w].includes(art))idx[w].push(art);}}return Object.fromEntries(Object.entries(idx).sort((a,b)=>a[0].localeCompare(b[0],"pt")));}
 
-function hierarquia(ds){const ctx={};const trilha={TÍTULO:"",CAPÍTULO:"",SEÇÃO:"",SUBSEÇÃO:""};const niv=["TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"];
+function fullTextSearch(ds,termo){
+  if(!termo||termo.length<3)return[];
+  const t=termo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const resultados=[];let artAtual="";
+  for(let i=0;i<ds.length;i++){const d=ds[i];
+    if(d.tipo==="ARTIGO")artAtual=d.id;
+    const texto=((d.id||"")+" "+(d.rub||"")+" "+(d.txt||"")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    if(texto.includes(t)){
+      const ocorrencias=(texto.split(t).length-1);
+      resultados.push({idx:i,tipo:d.tipo,id:d.id,art:artAtual,txt:d.txt,rub:d.rub,ocorrencias,status:d.status||"vigente"});
+    }
+  }
+  return resultados;
+}
+
+function hierarquia(ds){const ctx={};const trilha={PARTE:"",LIVRO:"",TÍTULO:"",CAPÍTULO:"",SEÇÃO:"",SUBSEÇÃO:""};const niv=["PARTE","LIVRO","TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"];
   for(const d of ds){if(DIV.has(d.tipo)){trilha[d.tipo]=d.rub||d.id;const i=niv.indexOf(d.tipo);for(let j=i+1;j<niv.length;j++)trilha[niv[j]]="";}
     if(d.tipo==="ARTIGO")ctx[d.id]=Object.values(trilha).filter(Boolean).join(" > ");}return ctx;}
 
@@ -291,20 +337,20 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
   </div>;
 }
 
-function TabSumario({ds}){const items=ds.filter(d=>DIV.has(d.tipo));return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Identificador</th><th>Rubrica</th></tr></thead><tbody>{items.map((d,i)=><tr key={i} style={{background:CT[d.tipo]||"#fff",color:d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#2D2A26"}}><td>{i+1}</td><td><span className="badge" style={{background:"rgba(0,0,0,.15)",color:"inherit"}}>{d.tipo}</span></td><td style={{fontWeight:700}}>{d.id}</td><td>{d.rub}</td></tr>)}</tbody></table></div>;}
+function TabSumario({ds}){const items=ds.filter(d=>DIV.has(d.tipo));return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>#</th><th>Tipo</th><th>Identificador</th><th>Rubrica</th></tr></thead><tbody>{items.map((d,i)=><tr key={i} style={{background:CT[d.tipo]||"#fff",color:d.tipo==="PARTE"||d.tipo==="LIVRO"||d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#2D2A26"}}><td>{i+1}</td><td><span className="badge" style={{background:"rgba(0,0,0,.15)",color:"inherit"}}>{d.tipo}</span></td><td style={{fontWeight:700}}>{d.id}</td><td>{d.rub}</td></tr>)}</tbody></table></div>;}
 
 function TabTexto({ds,lei,gSt,uSt,initialSearch}){const [srch,setSrch]=useState(initialSearch||"");useEffect(()=>{if(initialSearch)setSrch(initialSearch);},[initialSearch]);const fd=useMemo(()=>srch?ds.filter(d=>(d.txt+d.id+d.rub).toLowerCase().includes(srch.toLowerCase())):ds,[ds,srch]);
-  const ind={TÍTULO:0,CAPÍTULO:12,SEÇÃO:24,SUBSEÇÃO:36,ARTIGO:0,PARÁGRAFO:20,INCISO:36,ALÍNEA:52,ITEM:68};
+  const ind={PARTE:0,LIVRO:0,TÍTULO:0,CAPÍTULO:12,SEÇÃO:24,SUBSEÇÃO:36,ARTIGO:0,PARÁGRAFO:20,INCISO:36,ALÍNEA:52,ITEM:68};
   const sts=["","Não lido","Lido","Revisando","Dominado","Dúvida"];const sC={Dominado:"#27AE60",Dúvida:"#C0392B",Revisando:"#D4A017",Lido:"#2E86AB"};
   return <div><div style={{marginBottom:10}}><input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="Buscar na lei..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/></div>
     <div style={{maxHeight:"68vh",overflow:"auto",border:"1px solid var(--border)",borderRadius:8}}>{fd.map((d,i)=>{const ri=ds.indexOf(d);const isD=DIV.has(d.tipo);const st=gSt(lei.id,ri,"status");const nt=gSt(lei.id,ri,"note");const isVetado=d.status==="vetado";const isRevogado=d.status==="revogado";
       return <div key={ri} style={{display:"flex",borderBottom:"1px solid var(--border)",background:isVetado?"rgba(231,76,60,0.06)":isRevogado?"rgba(231,76,60,0.04)":isD?CT[d.tipo]||"#F5EDDF":ri%2===0?"#fff":"#FAF7F2",paddingLeft:ind[d.tipo]||0}}>
         <div style={{minWidth:70,padding:"6px 4px",textAlign:"center"}}>
-          <span className="badge" style={{background:isD?"rgba(0,0,0,.1)":"#F3EDE4",color:isD?(d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#5C554A"):"#8A8279"}}>{d.tipo}</span>
+          <span className="badge" style={{background:isD?"rgba(0,0,0,.1)":"#F3EDE4",color:isD?(d.tipo==="PARTE"||d.tipo==="LIVRO"||d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#5C554A"):"#8A8279"}}>{d.tipo}</span>
           {isVetado&&<div><span className="badge badge-revogado" style={{marginTop:3,display:"inline-block"}}>VETADO</span></div>}
           {isRevogado&&<div><span className="badge badge-revogado" style={{marginTop:3,display:"inline-block"}}>REVOGADO</span></div>}
         </div>
-        <div style={{flex:1,padding:"6px 8px",fontSize:12.5,lineHeight:1.6,color:isD?(d.tipo==="TÍTULO"?"#fff":"#2D2A26"):"#2D2A26",fontWeight:isD||d.tipo==="ARTIGO"?600:400,textDecoration:(isVetado||isRevogado)?"line-through":"none",opacity:(isVetado||isRevogado)?0.6:1}}>
+        <div style={{flex:1,padding:"6px 8px",fontSize:12.5,lineHeight:1.6,color:isD?(d.tipo==="PARTE"||d.tipo==="LIVRO"||d.tipo==="TÍTULO"?"#fff":"#2D2A26"):"#2D2A26",fontWeight:isD||d.tipo==="ARTIGO"?600:400,textDecoration:(isVetado||isRevogado)?"line-through":"none",opacity:(isVetado||isRevogado)?0.6:1}}>
           <span style={{color:isD?"inherit":"#B8965A",fontFamily:"'Segoe UI',sans-serif",fontSize:12,marginRight:4,textDecoration:"none"}}>{d.id}</span>
           {d.rub&&<i style={{opacity:.7}}>{d.rub} </i>}{d.txt}
           {d.alteracao&&<div style={{marginTop:3,padding:"2px 8px",background:"rgba(52,152,219,0.08)",borderLeft:"2px solid #3498db",borderRadius:3,fontSize:11,color:"#3498db",textDecoration:"none",fontWeight:400,opacity:1}}>↳ {d.alteracao}</div>}
@@ -430,9 +476,85 @@ function TabTeia({ds, buildRecursiveChain}){
 
 function TabPrazos({ds}){const pv=useMemo(()=>extrairPrazosValores(ds),[ds]);return <div style={{maxHeight:"70vh",overflow:"auto"}}>{pv.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhum prazo ou valor encontrado</div>:<table className="dt"><thead><tr><th>Tipo</th><th>Conteúdo</th><th>Artigo</th><th>Capítulo</th><th>Contexto</th></tr></thead><tbody>{pv.map((p,i)=><tr key={i}><td><span className="badge" style={{background:"var(--gold-subtle)",color:"var(--gold)"}}>{p.tipo}</span></td><td style={{fontWeight:600}}>{p.val}</td><td>{p.art}</td><td style={{fontSize:12}}>{p.cap}</td><td style={{fontSize:12}}>{p.ctx}</td></tr>)}</tbody></table>}</div>;}
 
-function TabIndice({ds,area,onGoToArt}){const idx=useMemo(()=>buildIdx(ds,area),[ds,area]);const [filtro,setFiltro]=useState("");const filtered=useMemo(()=>{if(!filtro.trim())return Object.entries(idx);const f=filtro.trim().toLowerCase();return Object.entries(idx).filter(([palavra])=>palavra.toLowerCase().includes(f));},[idx,filtro]);return <div><div style={{marginBottom:12}}><input value={filtro} onChange={e=>setFiltro(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();if(filtered.length===1)onGoToArt(filtered[0][1][0]);}}} placeholder="Buscar palavra-chave..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/></div>{filtered.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma palavra-chave encontrada para "{filtro}"</div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>{filtered.map(([palavra,artigos])=><div key={palavra} className="cd" style={{padding:12,cursor:"pointer"}} onClick={()=>onGoToArt(artigos[0])}><div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{palavra}</div><div style={{fontSize:11,color:"var(--text-sec)"}}>{artigos.length} artigo(s): {artigos.slice(0,3).join(", ")}{artigos.length>3?"...":""}</div></div>)}</div>}</div>;}
+function TabIndice({ds,area,onGoToArt}){
+  const [filtro,setFiltro]=useState("");
+  const idxPredefinido=useMemo(()=>buildIdx(ds,area),[ds,area]);
+  const resultadosBusca=useMemo(()=>fullTextSearch(ds,filtro),[ds,filtro]);
+  const totalOcorrencias=useMemo(()=>resultadosBusca.reduce((s,r)=>s+r.ocorrencias,0),[resultadosBusca]);
+  const buscaAtiva=filtro.trim().length>=3;
 
-function TabMapa({ds}){const estrutura=useMemo(()=>{const mapa={};let secaoAtual="";for(const d of ds){if(d.tipo==="SEÇÃO"){secaoAtual=d.id;mapa[secaoAtual]={titulo:d.rub,artigos:[]};}else if(d.tipo==="ARTIGO"&&secaoAtual){mapa[secaoAtual].artigos.push(d.id);}}return mapa;},[ds]);return <div style={{display:"flex",flexDirection:"column",gap:12}}>{Object.entries(estrutura).map(([secao,dados])=><div key={secao} className="cd" style={{padding:14}}><div style={{fontWeight:600,fontSize:13,marginBottom:8,color:"var(--gold)"}}>{secao}</div><div style={{fontSize:12,color:"var(--text-sec)",marginBottom:6}}>{dados.titulo}</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{dados.artigos.map(art=><span key={art} style={{background:"var(--gold-subtle)",color:"var(--gold)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{art}</span>)}</div></div>)}</div>;}
+  const highlightText=(text,term)=>{
+    if(!term||term.length<3||!text)return text;
+    const re=new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`,"gi");
+    const parts=text.split(re);
+    return parts.map((p,i)=>re.test(p)?React.createElement("mark",{key:i,style:{background:"rgba(212,168,83,0.35)",padding:"0 1px",borderRadius:2}},p):p);
+  };
+
+  return <div>
+    <div style={{marginBottom:12}}>
+      <input value={filtro} onChange={e=>setFiltro(e.target.value)} placeholder="Buscar qualquer palavra (mínimo 3 caracteres)..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/>
+      {buscaAtiva&&<div style={{marginTop:6,fontSize:12,color:"var(--text-sec)"}}>{totalOcorrencias} ocorrência(s) em {resultadosBusca.length} dispositivo(s)</div>}
+    </div>
+    {buscaAtiva?
+      (resultadosBusca.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhum dispositivo encontrado para "{filtro}"</div>
+      :<div style={{maxHeight:"65vh",overflow:"auto",border:"1px solid var(--border)",borderRadius:8}}>
+        <table className="dt"><thead><tr><th style={{width:60}}>#</th><th style={{width:80}}>Tipo</th><th style={{width:100}}>Id</th><th style={{width:80}}>Artigo</th><th>Texto</th><th style={{width:40}}>Qtd</th></tr></thead>
+        <tbody>{resultadosBusca.map((r,i)=>
+          <tr key={i} style={{opacity:r.status==="vetado"||r.status==="revogado"?0.5:1,cursor:"pointer"}} onClick={()=>onGoToArt(r.art||r.id)}>
+            <td>{i+1}</td>
+            <td><span className="badge" style={{background:"var(--gold-subtle)",color:"var(--gold)"}}>{r.tipo}</span></td>
+            <td style={{fontSize:12,fontWeight:600}}>{r.id}</td>
+            <td style={{color:"var(--gold)",fontWeight:600}}>{r.art}</td>
+            <td style={{fontSize:12,lineHeight:1.5}}>{highlightText((r.txt||"").slice(0,300)+(r.txt?.length>300?"...":""),filtro)}</td>
+            <td style={{fontWeight:700,textAlign:"center",color:"var(--gold)"}}>{r.ocorrencias}</td>
+          </tr>
+        )}</tbody></table>
+      </div>)
+    :<div>
+      <div style={{fontSize:12,color:"var(--text-sec)",marginBottom:10}}>Palavras-chave do índice ({AREAS[area]?.nome}):</div>
+      {Object.keys(idxPredefinido).length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma palavra-chave encontrada no índice predefinido</div>
+      :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>{Object.entries(idxPredefinido).map(([palavra,artigos])=>
+        <div key={palavra} className="cd" style={{padding:12,cursor:"pointer"}} onClick={()=>{setFiltro(palavra);}}>
+          <div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{palavra}</div>
+          <div style={{fontSize:11,color:"var(--text-sec)"}}>{artigos.length} artigo(s): {artigos.slice(0,3).join(", ")}{artigos.length>3?"...":""}</div>
+        </div>
+      )}</div>}
+    </div>}
+  </div>;
+}
+
+function TabMapa({ds}){const estrutura=useMemo(()=>{const mapa=[];let tituloAtual=null;let capAtual=null;let secAtual=null;
+  for(const d of ds){
+    if(d.tipo==="PARTE"||d.tipo==="LIVRO"){mapa.push({tipo:d.tipo,id:d.id,rub:d.rub,caps:[],artigos:[]});tituloAtual=null;capAtual=null;secAtual=null;}
+    else if(d.tipo==="TÍTULO"){const t={tipo:"TÍTULO",id:d.id,rub:d.rub,caps:[],artigos:[]};if(mapa.length>0&&(mapa[mapa.length-1].tipo==="PARTE"||mapa[mapa.length-1].tipo==="LIVRO")){mapa[mapa.length-1].caps.push(t);}else{mapa.push(t);}tituloAtual=t;capAtual=null;secAtual=null;}
+    else if(d.tipo==="CAPÍTULO"){const c={tipo:"CAPÍTULO",id:d.id,rub:d.rub,secs:[],artigos:[]};if(tituloAtual){tituloAtual.caps.push(c);}else{mapa.push(c);}capAtual=c;secAtual=null;}
+    else if(d.tipo==="SEÇÃO"){const s={tipo:"SEÇÃO",id:d.id,rub:d.rub,artigos:[]};if(capAtual){capAtual.secs.push(s);}else if(tituloAtual){tituloAtual.caps.push(s);}secAtual=s;}
+    else if(d.tipo==="SUBSEÇÃO"){/* agrupado dentro da seção corrente */}
+    else if(d.tipo==="ARTIGO"){const art=d.id;if(secAtual){secAtual.artigos.push(art);}else if(capAtual){capAtual.artigos.push(art);}else if(tituloAtual){tituloAtual.artigos.push(art);}}}
+  return mapa;},[ds]);
+
+  const renderArtigos=(arts)=>arts.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>{arts.map(a=><span key={a} style={{background:"var(--gold-subtle)",color:"var(--gold)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{a}</span>)}</div>;
+
+  const renderSec=(s,i)=><div key={i} style={{marginLeft:16,marginTop:6,padding:"6px 10px",borderLeft:"2px solid var(--border)",background:"var(--bg-hover)",borderRadius:"0 6px 6px 0"}}>
+    <div style={{fontSize:12,color:"var(--text-sec)"}}><b style={{color:"var(--gold)"}}>{s.id}</b> — {s.rub}</div>
+    {renderArtigos(s.artigos)}
+  </div>;
+
+  const renderCap=(c,i)=><div key={i} style={{marginLeft:8,marginTop:8,padding:"8px 12px",background:"var(--bg-hover)",borderRadius:8,border:"1px solid var(--border)"}}>
+    <div style={{fontSize:13,fontWeight:600}}><span style={{color:"var(--gold)"}}>{c.id}</span> — {c.rub}</div>
+    {renderArtigos(c.artigos)}
+    {c.secs&&c.secs.map(renderSec)}
+  </div>;
+
+  return <div style={{display:"flex",flexDirection:"column",gap:12,maxHeight:"70vh",overflow:"auto"}}>{estrutura.map((t,i)=>
+    <div key={i} className="cd" style={{padding:14}}>
+      <div style={{fontWeight:700,fontSize:14,color:"var(--gold)",marginBottom:2}}>{t.id}</div>
+      <div style={{fontSize:13,color:"var(--text-sec)",marginBottom:6}}>{t.rub}</div>
+      {renderArtigos(t.artigos)}
+      {t.caps&&t.caps.map(renderCap)}
+    </div>
+  )}</div>;
+}
 
 function TabAnexos({lei,addAnexo,delAnexo}){const [uping,setUp]=useState(false);const [selAnx,setSelAnx]=useState(null);const fRef=useRef(null);
   const upAnx=async e=>{const files=e.target.files;if(!files||!files.length)return;setUp(true);for(let i=0;i<files.length;i++){await addAnexo(lei.id,files[i]);}setUp(false);if(fRef.current)fRef.current.value="";};
@@ -476,26 +598,36 @@ function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);c
 
 // ═══ REFORMA ═══
 const REFORMA=[
-  {n:"EC 132/2023",d:"Emenda Constitucional da Reforma Tributária. Institui IBS, CBS e Imposto Seletivo em substituição a PIS, COFINS, IPI, ICMS e ISS. Período de transição: 2026-2033."},
-  {n:"LC 214/2025",d:"Lei Complementar que regulamenta o IBS, a CBS e o Imposto Seletivo. Detalha regras de incidência, base de cálculo, alíquotas, créditos, regimes específicos e o split payment."},
-  {n:"LC 227/2026 (prevista)",d:"Complementação normativa da Reforma. Regulamentação adicional do Comitê Gestor do IBS e procedimentos de transição."},
-  {n:"IN RFB nº 2.121/2022",d:"Instrução Normativa que consolida a legislação de PIS/COFINS. Vigente durante o período de transição até a plena implementação da CBS."},
-  {n:"Lei nº 10.637/2002",d:"PIS não cumulativo. Regime vigente durante a transição, com redução gradual de alíquotas a partir de 2027."},
-  {n:"Lei nº 10.833/2003",d:"COFINS não cumulativa. Regime vigente durante a transição, com redução gradual de alíquotas a partir de 2027."},
-  {n:"Lei nº 9.718/1998",d:"PIS/COFINS cumulativo. Regime vigente durante a transição para os contribuintes não sujeitos à não cumulatividade."},
+  {n:"EC 132/2023",d:"Emenda Constitucional da Reforma Tributária. Institui IBS, CBS e Imposto Seletivo em substituição a PIS, COFINS, IPI, ICMS e ISS. Período de transição: 2026-2033.",url:"https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc132.htm"},
+  {n:"LC 214/2025",d:"Lei Complementar que regulamenta o IBS, a CBS e o Imposto Seletivo. Detalha regras de incidência, base de cálculo, alíquotas, créditos, regimes específicos e o split payment.",url:"https://www.planalto.gov.br/ccivil_03/leis/lcp/Lcp214.htm"},
+  {n:"LC 227/2026 (prevista)",d:"Complementação normativa da Reforma. Regulamentação adicional do Comitê Gestor do IBS e procedimentos de transição.",url:""},
+  {n:"IN RFB nº 2.121/2022",d:"Instrução Normativa que consolida a legislação de PIS/COFINS. Vigente durante o período de transição até a plena implementação da CBS.",url:"https://normasinternet2.receita.fazenda.gov.br/#/consulta/externa/127905"},
+  {n:"Lei nº 10.637/2002",d:"PIS não cumulativo. Regime vigente durante a transição, com redução gradual de alíquotas a partir de 2027.",url:"https://www.planalto.gov.br/ccivil_03/leis/2002/l10637.htm"},
+  {n:"Lei nº 10.833/2003",d:"COFINS não cumulativa. Regime vigente durante a transição, com redução gradual de alíquotas a partir de 2027.",url:"https://www.planalto.gov.br/ccivil_03/leis/2003/l10.833.htm"},
+  {n:"Lei nº 9.718/1998",d:"PIS/COFINS cumulativo. Regime vigente durante a transição para os contribuintes não sujeitos à não cumulatividade.",url:"https://www.planalto.gov.br/ccivil_03/leis/l9718.htm"},
 ];
 function Ref({apiKey,saveKey}){const [sub,setSub]=useState("leg");const [tMsgs,setTMsgs]=useState([]);const [tInp,setTInp]=useState("");const [tLd,setTLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);const cr=useRef(null);const subs=[{id:"leg",lb:"Legislação"},{id:"timeline",lb:"Timeline Transição"},{id:"tutor",lb:"Tutor Reforma"}];
-  const TIMELINE=[{ano:"2023",ev:"EC 132/2023 promulgada",det:"Aprovação da Emenda Constitucional da Reforma Tributária."},{ano:"2025",ev:"LC 214/2025 publicada",det:"Regulamentação do IBS, CBS e Imposto Seletivo."},{ano:"2026",ev:"Início do período de teste",det:"CBS a 0,9% e IBS a 0,1% (alíquota-teste). PIS/COFINS mantidos integralmente."},{ano:"2027",ev:"CBS substituindo PIS/COFINS",det:"CBS em vigor com alíquota de referência. PIS e COFINS extintos."},{ano:"2029-2032",ev:"Transição gradual ICMS/ISS → IBS",det:"Redução progressiva de ICMS e ISS: 90% em 2029, 80% em 2030, 70% em 2031, 60% em 2032."},{ano:"2033",ev:"Plena vigência",det:"IBS em alíquota plena. ICMS e ISS extintos. Sistema dual CBS+IBS consolidado."}];
+  const TIMELINE=[{ano:"2023",ev:"EC 132/2023 promulgada",det:"Aprovação da Emenda Constitucional da Reforma Tributária.",fonte:"Planalto",url:"https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc132.htm"},{ano:"2025",ev:"LC 214/2025 publicada",det:"Regulamentação do IBS, CBS e Imposto Seletivo.",fonte:"Planalto",url:"https://www.planalto.gov.br/ccivil_03/leis/lcp/Lcp214.htm"},{ano:"2026",ev:"Início do período de teste",det:"CBS a 0,9% e IBS a 0,1% (alíquota-teste). PIS/COFINS mantidos integralmente.",fonte:"EC 132/2023, art. 125"},{ano:"2027",ev:"CBS substituindo PIS/COFINS",det:"CBS em vigor com alíquota de referência. PIS e COFINS extintos.",fonte:"EC 132/2023, art. 125, §1º"},{ano:"2029-2032",ev:"Transição gradual ICMS/ISS → IBS",det:"Redução progressiva de ICMS e ISS: 90% em 2029, 80% em 2030, 70% em 2031, 60% em 2032.",fonte:"EC 132/2023, art. 125, §§3º-5º"},{ano:"2033",ev:"Plena vigência",det:"IBS em alíquota plena. ICMS e ISS extintos. Sistema dual CBS+IBS consolidado.",fonte:"EC 132/2023, art. 125, §6º"}];
   const sendT=async()=>{if(!tInp.trim()||tLd||!apiKey)return;const m=tInp.trim();setTInp("");setTMsgs(p=>[...p,{role:"user",text:m}]);setTLd(true);try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1024,system:"Você é o TERA Tutor especialista em Reforma Tributária brasileira (EC 132/2023, LC 214/2025). Responda sobre IBS, CBS, Imposto Seletivo, split payment, não cumulatividade, transição, cashback.",messages:[{role:"user",content:m}]})});const d=await r.json();setTMsgs(p=>[...p,{role:"assistant",text:d.content?.[0]?.text||"Erro."}]);}catch(e){setTMsgs(p=>[...p,{role:"assistant",text:"Erro: "+e.message}]);}setTLd(false);};
   useEffect(()=>{cr.current&&(cr.current.scrollTop=cr.current.scrollHeight);},[tMsgs]);
   return <div className="fade"><h2 style={{fontSize:20,fontWeight:700,marginBottom:12}}>Reforma Tributária</h2>
     <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--border)",marginBottom:14}}>{subs.map(s=><button key={s.id} className={`stab ${sub===s.id?"on":""}`} onClick={()=>setSub(s.id)}>{s.lb}</button>)}</div>
-    {sub==="leg"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:14}}><b>{r.n}</b><p style={{fontSize:13,color:"var(--text-sec)",marginTop:4}}>{r.d}</p></div>)}</div>}
-    {sub==="timeline"&&<div style={{position:"relative",paddingLeft:30}}>{TIMELINE.map((t,i)=><div key={i} style={{position:"relative",marginBottom:20,paddingLeft:20}}>
+    {sub==="leg"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:14,cursor:r.url?"pointer":"default"}} onClick={()=>{if(r.url)window.open(r.url,"_blank");}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><b>{r.n}</b>{r.url&&<span style={{fontSize:11,color:"var(--gold)",display:"flex",alignItems:"center",gap:3}}><Ic d={IC.lk} s={11} c="var(--gold)"/>Abrir</span>}</div><p style={{fontSize:13,color:"var(--text-sec)",marginTop:4}}>{r.d}</p></div>)}</div>}
+    {sub==="timeline"&&<div>
+      <div style={{background:"var(--gold-subtle)",border:"1px solid var(--gold)",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>Fontes: EC 132/2023, LC 214/2025 — Dados extraídos da legislação vigente publicada no Planalto.</span>
+        <a href="https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc132.htm" target="_blank" style={{fontSize:11,color:"var(--gold)",whiteSpace:"nowrap",marginLeft:8}}>Verificar fonte</a>
+      </div>
+      <div style={{position:"relative",paddingLeft:30}}>{TIMELINE.map((t,i)=><div key={i} style={{position:"relative",marginBottom:20,paddingLeft:20}}>
       <div style={{position:"absolute",left:-30,top:0,width:20,height:20,borderRadius:"50%",background:"var(--grad)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}></div></div>
       {i<TIMELINE.length-1&&<div style={{position:"absolute",left:-21,top:20,width:2,height:"calc(100% + 4px)",background:"var(--border)"}}></div>}
-      <div className="cd" style={{padding:14}}><div style={{fontWeight:700,color:"var(--gold)",fontSize:15}}>{t.ano}</div><div style={{fontWeight:600,marginTop:4}}>{t.ev}</div><div style={{fontSize:13,color:"var(--text-sec)",marginTop:4}}>{t.det}</div></div>
-    </div>)}</div>}
+      <div className="cd" style={{padding:14,cursor:t.url?"pointer":"default"}} onClick={()=>{if(t.url)window.open(t.url,"_blank");}}>
+        <div style={{fontWeight:700,color:"var(--gold)",fontSize:15}}>{t.ano}</div>
+        <div style={{fontWeight:600,marginTop:4}}>{t.ev}</div>
+        <div style={{fontSize:13,color:"var(--text-sec)",marginTop:4}}>{t.det}</div>
+        <div style={{fontSize:11,color:"var(--text-mute)",marginTop:6,fontStyle:"italic"}}>Fonte: {t.fonte}{t.url&&<> · <a href={t.url} target="_blank" onClick={e=>e.stopPropagation()} style={{color:"var(--gold)"}}>ver legislação</a></>}</div>
+      </div>
+    </div>)}</div></div>}
     {sub==="tutor"&&(!apiKey?<div className="cd" style={{padding:20}}><div style={{fontWeight:700,marginBottom:10}}>Configurar API Key</div><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-..." style={{width:"100%",padding:10,marginBottom:10,borderRadius:6}}/><button onClick={()=>saveKey(localKey)} className="btn-primary">Salvar</button></div>
     :<div style={{display:"flex",flexDirection:"column",height:"60vh"}}>
       <div ref={cr} style={{flex:1,overflowY:"auto",padding:10}}>{tMsgs.length===0&&<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Pergunte sobre a Reforma Tributária, IBS, CBS, Imposto Seletivo...</div>}{tMsgs.map((m,i)=><div key={i} style={{marginBottom:10,textAlign:m.role==="user"?"right":"left"}}><div style={{display:"inline-block",padding:10,borderRadius:10,maxWidth:"80%",background:m.role==="user"?"var(--grad)":"var(--bg-hover)",color:m.role==="user"?"#fff":"var(--text)",whiteSpace:"pre-wrap"}}>{m.text}</div></div>)}</div>
@@ -505,13 +637,103 @@ function Ref({apiKey,saveKey}){const [sub,setSub]=useState("leg");const [tMsgs,s
 }
 
 // ═══ ATUALIZAÇÕES ═══
+const PORTAIS=[
+  {id:"rfb",nome:"RFB Reforma",cor:"#2e86ab"},
+  {id:"nfe",nome:"NFe/NFCe",cor:"#27ae60"},
+  {id:"dou",nome:"Diário Oficial",cor:"#d4a017"}
+];
+const DATA_URL="data/atualizacoes.json";
+
 function Atl({apiKey,saveKey}){
-  const [hist,setHist]=useState(()=>LS("t3-upd")||[]);const [ld,setLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);
-  const buscar=async()=>{if(!apiKey){alert("Configure sua API Key primeiro.");return;}setLd(true);try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2048,system:"Você é um assistente especializado em legislação tributária brasileira. Forneça um resumo das últimas atualizações normativas tributárias federais relevantes (Instruções Normativas RFB, Leis Complementares, Decretos, Soluções de Consulta COSIT). Foque em PIS/COFINS, Simples Nacional e Reforma Tributária. Formato: lista com data, norma e breve descrição.",messages:[{role:"user",content:"Quais são as atualizações tributárias mais recentes? Data de hoje: "+new Date().toLocaleDateString("pt-BR")}]})});const d=await r.json();const texto=d.content?.[0]?.text||"Nenhuma atualização encontrada.";const nova={data:new Date().toLocaleDateString("pt-BR")+" "+new Date().toLocaleTimeString("pt-BR"),texto};const nh=[nova,...hist].slice(0,20);setHist(nh);LS("t3-upd",nh);}catch(e){alert("Erro: "+e.message);}setLd(false);};
-  if(!apiKey)return <div className="fade"><h2 style={{marginBottom:14}}>Atualizações</h2><div className="cd" style={{padding:20}}><div style={{fontWeight:700,marginBottom:10}}>Configurar API Key para buscar atualizações</div><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-..." style={{width:"100%",padding:10,marginBottom:10,borderRadius:6}}/><button onClick={()=>saveKey(localKey)} className="btn-primary">Salvar</button></div></div>;
-  return <div className="fade"><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h2>Atualizações</h2><button onClick={buscar} className="btn-primary" disabled={ld}>{ld?<><Sp/> Buscando...</>:"Buscar Agora"}</button></div>
-    {hist.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma busca realizada. Clique em "Buscar Agora" para verificar atualizações.</div>
-    :<div style={{display:"flex",flexDirection:"column",gap:10}}>{hist.map((h,i)=><div key={i} className="cd" style={{padding:14}}><div style={{fontSize:11,color:"var(--text-sec)",marginBottom:8}}>{h.data}</div><div style={{fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{h.texto}</div></div>)}</div>}
+  const [itens,setItens]=useState(()=>LS("t3-upd-v2")||[]);
+  const [ultimaAtt,setUltimaAtt]=useState(()=>LS("t3-upd-dt")||"");
+  const [ld,setLd]=useState(false);
+  const [filtro,setFiltro]=useState("");
+  const [filtroPortal,setFiltroPortal]=useState("");
+  const [filtroData,setFiltroData]=useState("");
+  const [erro,setErro]=useState("");
+
+  const buscar=async()=>{setLd(true);setErro("");
+    try{
+      const r=await fetch(DATA_URL+"?t="+Date.now());
+      if(!r.ok)throw new Error("Arquivo de atualizações não encontrado ("+r.status+"). Execute o workflow do GitHub Actions ou aguarde a próxima atualização automática.");
+      const data=await r.json();
+      if(data.itens&&Array.isArray(data.itens)){
+        // Mesclar com itens existentes (evitar duplicatas por link)
+        const linksExist=new Set(itens.map(i=>i.link));
+        const novos=data.itens.filter(i=>!linksExist.has(i.link));
+        const merged=[...novos,...itens].sort((a,b)=>b.data.localeCompare(a.data));
+        setItens(merged);LS("t3-upd-v2",merged);
+        setUltimaAtt(data.ultima_atualizacao||new Date().toISOString());
+        LS("t3-upd-dt",data.ultima_atualizacao||new Date().toISOString());
+      }else{setErro("Formato de dados inesperado no arquivo JSON.");}
+    }catch(e){setErro(e.message);}setLd(false);};
+
+  const exportar=()=>{try{
+    const data={ultima_atualizacao:ultimaAtt,itens:itensFiltrados,exportDate:new Date().toISOString()};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download="TERA_atualizacoes_"+new Date().toISOString().slice(0,10)+".json";
+    a.click();URL.revokeObjectURL(url);
+  }catch(e){alert("Erro ao exportar: "+e.message);}};
+
+  const limpar=()=>{if(confirm("Tem certeza que deseja limpar todo o histórico de atualizações?")){setItens([]);setUltimaAtt("");LS("t3-upd-v2",null);LS("t3-upd-dt",null);}};
+
+  const itensFiltrados=useMemo(()=>{
+    let f=itens;
+    if(filtroPortal)f=f.filter(i=>i.portal===filtroPortal);
+    if(filtroData)f=f.filter(i=>i.data===filtroData);
+    if(filtro.trim()){const term=filtro.toLowerCase();f=f.filter(i=>(i.titulo||"").toLowerCase().includes(term)||(i.resumo||"").toLowerCase().includes(term)||(i.portal||"").toLowerCase().includes(term));}
+    return f;
+  },[itens,filtroPortal,filtroData,filtro]);
+
+  const datasUnicas=useMemo(()=>[...new Set(itens.map(i=>i.data))].sort().reverse(),[itens]);
+  const portalCor=(portal)=>PORTAIS.find(p=>p.nome===portal||p.id===portal)?.cor||"var(--text-sec)";
+
+  return <div className="fade">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+      <div><h2 style={{margin:0}}>Atualizações</h2>
+        {ultimaAtt&&<div style={{fontSize:11,color:"var(--text-sec)",marginTop:2}}>Última atualização do servidor: {new Date(ultimaAtt).toLocaleString("pt-BR")}</div>}
+        <div style={{fontSize:11,color:"var(--text-mute)",marginTop:1}}>Atualização automática: seg-sex às 09:00 (GitHub Actions)</div>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <button onClick={buscar} className="btn-primary" disabled={ld}>{ld?<><Sp/> Buscando...</>:"Buscar Agora"}</button>
+        {itens.length>0&&<><button onClick={exportar} className="btn-secondary" style={{fontSize:12,padding:"8px 12px"}}>Exportar</button>
+        <button onClick={limpar} className="btn-secondary" style={{fontSize:12,padding:"8px 12px",color:"var(--err)"}}>Limpar Histórico</button></>}
+      </div>
+    </div>
+    {erro&&<div style={{background:"rgba(231,76,60,0.1)",border:"1px solid #e74c3c",borderRadius:8,padding:"10px 14px",marginBottom:10,fontSize:13,color:"#e74c3c"}}>{erro}</div>}
+    {itens.length>0&&<div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+      <input value={filtro} onChange={e=>setFiltro(e.target.value)} placeholder="Filtrar por nome ou texto..." style={{flex:"1 1 200px",padding:"8px 12px",borderRadius:6,fontSize:13,background:"var(--bg-hover)",border:"1px solid var(--border)"}}/>
+      <select value={filtroPortal} onChange={e=>setFiltroPortal(e.target.value)} style={{padding:"8px",borderRadius:6,fontSize:12}}>
+        <option value="">Todos os portais</option>
+        {PORTAIS.map(p=><option key={p.id} value={p.nome}>{p.nome}</option>)}
+      </select>
+      <select value={filtroData} onChange={e=>setFiltroData(e.target.value)} style={{padding:"8px",borderRadius:6,fontSize:12}}>
+        <option value="">Todas as datas</option>
+        {datasUnicas.map(d=><option key={d} value={d}>{d}</option>)}
+      </select>
+      <span style={{fontSize:12,color:"var(--text-sec)"}}>{itensFiltrados.length} de {itens.length}</span>
+    </div>}
+    {itens.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>
+      <div style={{fontSize:16,marginBottom:8}}>Nenhuma atualização carregada</div>
+      <div style={{fontSize:13,lineHeight:1.6}}>Clique em "Buscar Agora" para carregar as atualizações do servidor.<br/>As atualizações são geradas automaticamente de seg-sex às 09:00 por um script Python no GitHub Actions que consulta:<br/>
+        <a href="https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/acoes-e-programas/programas-e-atividades/reforma-consumo/noticias" target="_blank">RFB Reforma</a> · <a href="https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=04BIflQt1aY=" target="_blank">NFe</a> · <a href="https://in.gov.br/leiturajornal" target="_blank">DOU</a>
+      </div>
+    </div>
+    :<div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"65vh",overflow:"auto"}}>{itensFiltrados.map((item,i)=>
+      <div key={i} className="cd" style={{padding:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+          <div>
+            <span className="badge" style={{background:portalCor(item.portal)+"22",color:portalCor(item.portal),marginRight:8}}>{item.portal}</span>
+            <span style={{fontSize:11,color:"var(--text-sec)"}}>{item.data}</span>
+          </div>
+          {item.link&&<a href={item.link} target="_blank" onClick={e=>e.stopPropagation()} style={{fontSize:11,color:"var(--gold)",display:"flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}><Ic d={IC.lk} s={10} c="var(--gold)"/>Abrir</a>}
+        </div>
+        <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{item.titulo}</div>
+        {item.resumo&&<div style={{fontSize:12,color:"var(--text-sec)",lineHeight:1.5}}>{item.resumo}</div>}
+      </div>
+    )}</div>}
   </div>;
 }
 
