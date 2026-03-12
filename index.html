@@ -247,20 +247,88 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
   const showSaved=()=>{setSaved(true);setTimeout(()=>setSaved(false),1500);};
   const wrappedUSt=(a,b,c,d)=>{uSt(a,b,c,d);showSaved();};
 
-  // Extrai refs internas (mesma lei) de um texto, ignorando refs a leis externas
+  // Extrai refs internas (mesma lei) de um texto, ignorando refs a leis externas.
+  // Duas camadas de detecção:
+  //   Camada 1: blocos parentéticos contendo citações de leis → toda ref "art." dentro é externa
+  //   Camada 2: contexto inline — se há lei citada antes, verifica se o texto intermediário
+  //             é apenas sintaxe de citação (→ externa) ou contém prosa (→ interna)
   const extractInternalRefs = (text) => {
     const refs = [];
-    // Regex para encontrar todas as menções a artigos
     const reArt = /arts?\.\s*(\d+[ºo°]?(?:\s*(?:,|e|a)\s*\d+[ºo°]?)*)/gi;
-    // Padrão de lei externa antes da ref (lookbehind manual)
-    const reLeiExterna = /(?:Lei\s+(?:Complementar\s+)?n[ºo°]?\s*[\d.]+|Decreto(?:-Lei)?\s+n[ºo°]?\s*[\d.]+|Medida\s+Provis[óo]ria\s+n[ºo°]?\s*[\d.]+|Instru[çc][ãa]o\s+Normativa\s+[A-Z]+\s+n[ºo°]?\s*[\d.]+|C[óo]digo\s+\w+)\s*(?:,\s*de\s+\d{4}\s*)?(?:,\s*)?$/i;
+
+    // --- Camada 1: mapeamento de blocos parentéticos com citação de lei ---
+    const reLeiNome = /(?:Lei(?:\s+Complementar)?|Decreto(?:-Lei)?|Medida\s+Provis[óo]ria|Instru[çc][ãa]o\s+Normativa(?:\s+(?:RFB|SRF|[A-Z]{2,}))?|C[óo]digo\s+\w+)\s+n[ºo°]/i;
+    const externalRanges = [];
+    const reParen = /\([^)]+\)/g;
+    let pm;
+    while ((pm = reParen.exec(text)) !== null) {
+      if (reLeiNome.test(pm[0])) {
+        externalRanges.push([pm.index, pm.index + pm[0].length]);
+      }
+    }
+
+    // --- Camada 2: padrão de lei para busca inline ---
+    const reLeiInline = /(?:Lei(?:\s+Complementar)?\s+n[ºo°]?\s*[\d.]+|Decreto(?:-Lei)?\s+n[ºo°]?\s*[\d.]+|Medida\s+Provis[óo]ria\s+n[ºo°]?\s*[\d.]+|Instru[çc][ãa]o\s+Normativa\s+(?:RFB\s+|SRF\s+|[A-Z]{2,}\s+)?n[ºo°]?\s*[\d.]+)/gi;
+
+    // Função auxiliar: verifica se texto entre lei e "art." é somente sintaxe de citação
+    const isCitationSyntaxOnly = (between) => {
+      let cleaned = between;
+      // Remove datas completas: "de 13 de dezembro de 1996"
+      cleaned = cleaned.replace(/,?\s*de\s+\d{1,2}\s+de\s+\w+\s+de\s+\d{4}/g, "");
+      // Remove datas curtas: "de 1998", "de 2002"
+      cleaned = cleaned.replace(/,?\s*de\s+\d{4}/g, "");
+      // Remove referências a artigos/parágrafos/incisos/alíneas
+      cleaned = cleaned.replace(/\s*arts?\.\s*\d+[ºo°]?/g, "");
+      cleaned = cleaned.replace(/\s*§+\s*\d*[ºo°]?\.?/g, "");
+      cleaned = cleaned.replace(/\s*incisos?\s+[IVXLCDM]+/gi, "");
+      cleaned = cleaned.replace(/\s*al[íi]neas?\s+[a-z]\)?/gi, "");
+      cleaned = cleaned.replace(/\s*itens?\s+\d+/gi, "");
+      // Remove nomes de lei que podem aparecer encadeados (Lei nº X ... e Lei nº Y)
+      cleaned = cleaned.replace(/(?:Lei(?:\s+Complementar)?\s+n[ºo°]?\s*[\d.]+|Decreto(?:-Lei)?\s+n[ºo°]?\s*[\d.]+)/gi, "");
+      // Remove pontuação, conectores e espaço
+      cleaned = cleaned.replace(/[,;.\s\-–—ºo°:()]+/g, " ");
+      cleaned = cleaned.replace(/\b(?:e|a|de|do|da|dos|das|no|na|nos|nas|ao|caput)\b/gi, "");
+      cleaned = cleaned.trim();
+      return cleaned.length === 0;
+    };
+
     let m;
-    while((m=reArt.exec(text))!==null){
-      // Verifica contexto: 120 chars antes da match
-      const before=text.slice(Math.max(0,m.index-120),m.index);
-      if(reLeiExterna.test(before))continue; // ref externa, ignorar
-      const nums=m[1].match(/\d+[ºo°]?/g)||[];
-      for(const n of nums){const artId="Art. "+n;if(!refs.includes(artId))refs.push(artId);}
+    while ((m = reArt.exec(text)) !== null) {
+      const pos = m.index;
+
+      // Camada 1: dentro de bloco parentético com citação de lei?
+      const inExtParen = externalRanges.some(([s, e]) => pos >= s && pos <= e);
+      if (inExtParen) continue;
+
+      // Camada 2: lei citada no contexto inline (mesmo trecho, sem fronteira de frase)?
+      const before = text.slice(Math.max(0, pos - 250), pos);
+      let isExternal = false;
+
+      // Procura a última citação de lei no trecho anterior
+      reLeiInline.lastIndex = 0;
+      let lastLaw = null;
+      let lm;
+      while ((lm = reLeiInline.exec(before)) !== null) {
+        lastLaw = { index: lm.index, end: lm.index + lm[0].length, text: lm[0] };
+      }
+
+      if (lastLaw) {
+        const between = before.slice(lastLaw.end);
+        if (isCitationSyntaxOnly(between)) {
+          isExternal = true;
+        }
+        // Se o texto intermediário contém prosa substantiva, é ref interna
+        // (ex: "..., exceto quanto às disposições específicas referentes aos tributos mencionados no")
+      }
+
+      if (isExternal) continue;
+
+      // É referência interna
+      const nums = m[1].match(/\d+[ºo°]?/g) || [];
+      for (const n of nums) {
+        const artId = "Art. " + n;
+        if (!refs.includes(artId)) refs.push(artId);
+      }
     }
     return refs;
   };
@@ -476,9 +544,19 @@ function TabEstudo({ds,lei,gSt,uSt}){
             const st = gSt(lei.id, ri, "status");
             const dif = gSt(lei.id, ri, "dif");
             const nt = gSt(lei.id, ri, "note");
-            return <tr key={ri}>
-              <td style={{fontWeight:700,fontSize:12,verticalAlign:"top"}}>{d.id}</td>
-              <td style={{fontSize:12,lineHeight:1.5,whiteSpace:"pre-wrap",wordBreak:"break-word",verticalAlign:"top",padding:"10px"}}>{d.txt}</td>
+            const isVetado = d.status === "vetado";
+            const isRevogado = d.status === "revogado";
+            const isInativo = isVetado || isRevogado;
+            return <tr key={ri} style={{opacity:isInativo?0.6:1,background:isVetado?"rgba(231,76,60,0.06)":isRevogado?"rgba(231,76,60,0.04)":"inherit"}}>
+              <td style={{fontWeight:700,fontSize:12,verticalAlign:"top"}}>
+                {d.id}
+                {isVetado&&<div><span className="badge badge-revogado" style={{marginTop:4,display:"inline-block"}}>VETADO</span></div>}
+                {isRevogado&&<div><span className="badge badge-revogado" style={{marginTop:4,display:"inline-block"}}>REVOGADO</span></div>}
+              </td>
+              <td style={{fontSize:12,lineHeight:1.5,whiteSpace:"pre-wrap",wordBreak:"break-word",verticalAlign:"top",padding:"10px",textDecoration:isInativo?"line-through":"none"}}>
+                {d.txt}
+                {d.alteracao&&<div style={{marginTop:4,padding:"2px 8px",background:"rgba(52,152,219,0.08)",borderLeft:"2px solid #3498db",borderRadius:3,fontSize:11,color:"#3498db",textDecoration:"none",fontWeight:400}}>↳ {d.alteracao}</div>}
+              </td>
               <td style={{verticalAlign:"top"}}>
                 <select value={st} onChange={e=>uSt(lei.id,ri,"status",e.target.value)} style={{width:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:4,color:sC[st]||"var(--text)",padding:"4px",fontSize:11}}>
                   <option value="">Selecionar...</option>
@@ -652,50 +730,201 @@ function TabIndice({ds,area,onGoToArt}){
   </div>;
 }
 
-function TabMapa({ds}){const estrutura=useMemo(()=>{const mapa=[];let tituloAtual=null;let capAtual=null;let secAtual=null;
-  for(const d of ds){
-    if(d.tipo==="PARTE"||d.tipo==="LIVRO"){mapa.push({tipo:d.tipo,id:d.id,rub:d.rub,caps:[],artigos:[]});tituloAtual=null;capAtual=null;secAtual=null;}
-    else if(d.tipo==="TÍTULO"){const t={tipo:"TÍTULO",id:d.id,rub:d.rub,caps:[],artigos:[]};if(mapa.length>0&&(mapa[mapa.length-1].tipo==="PARTE"||mapa[mapa.length-1].tipo==="LIVRO")){mapa[mapa.length-1].caps.push(t);}else{mapa.push(t);}tituloAtual=t;capAtual=null;secAtual=null;}
-    else if(d.tipo==="CAPÍTULO"){const c={tipo:"CAPÍTULO",id:d.id,rub:d.rub,secs:[],artigos:[]};if(tituloAtual){tituloAtual.caps.push(c);}else{mapa.push(c);}capAtual=c;secAtual=null;}
-    else if(d.tipo==="SEÇÃO"){const s={tipo:"SEÇÃO",id:d.id,rub:d.rub,artigos:[]};if(capAtual){capAtual.secs.push(s);}else if(tituloAtual){tituloAtual.caps.push(s);}secAtual=s;}
-    else if(d.tipo==="SUBSEÇÃO"){/* agrupado dentro da seção corrente */}
-    else if(d.tipo==="ARTIGO"){const art=d.id;if(secAtual){secAtual.artigos.push(art);}else if(capAtual){capAtual.artigos.push(art);}else if(tituloAtual){tituloAtual.artigos.push(art);}}}
-  return mapa;},[ds]);
+function TabMapa({ds}){
+  const [selArt,setSelArt]=useState(null);
+  const [collapsed,setCollapsed]=useState({});
 
-  const renderArtigos=(arts)=>{
-    if(!arts||arts.length===0)return null;
-    // Agrupa artigos consecutivos em intervalos
-    const extractNum=a=>{const m=a.match(/(\d+)/);return m?parseInt(m[1],10):0;};
-    const sorted=[...arts].sort((a,b)=>extractNum(a)-extractNum(b));
-    const groups=[];let grp=[sorted[0]];
-    for(let i=1;i<sorted.length;i++){
-      if(extractNum(sorted[i])-extractNum(sorted[i-1])===1){grp.push(sorted[i]);}
-      else{groups.push(grp);grp=[sorted[i]];}
+  const toggle=(key)=>setCollapsed(p=>({...p,[key]:!p[key]}));
+
+  // Build map of article status (vigente/vetado/revogado) and full hierarchy
+  const artStatusMap=useMemo(()=>{
+    const m={};
+    for(const d of ds){if(d.tipo==="ARTIGO")m[d.id]=d.status||"vigente";}
+    return m;
+  },[ds]);
+
+  // Build hierarchical structure capturing ALL levels and ALL articles
+  const estrutura=useMemo(()=>{
+    const mapa=[];
+    const stack={PARTE:null,LIVRO:null,"TÍTULO":null,"CAPÍTULO":null,"SEÇÃO":null,"SUBSEÇÃO":null};
+    const levels=["PARTE","LIVRO","TÍTULO","CAPÍTULO","SEÇÃO","SUBSEÇÃO"];
+
+    const clearBelow=(tipo)=>{
+      const idx=levels.indexOf(tipo);
+      for(let i=idx+1;i<levels.length;i++)stack[levels[i]]=null;
+    };
+
+    const getParent=(tipo)=>{
+      const idx=levels.indexOf(tipo);
+      for(let i=idx-1;i>=0;i--){if(stack[levels[i]])return stack[levels[i]];}
+      return null;
+    };
+
+    for(const d of ds){
+      if(DIV.has(d.tipo)){
+        const node={tipo:d.tipo,id:d.id,rub:d.rub,children:[],artigos:[]};
+        clearBelow(d.tipo);
+        stack[d.tipo]=node;
+        const parent=getParent(d.tipo);
+        if(parent){parent.children.push(node);}
+        else{mapa.push(node);}
+      }else if(d.tipo==="ARTIGO"){
+        // Find deepest active division to attach article to
+        let target=null;
+        for(let i=levels.length-1;i>=0;i--){if(stack[levels[i]]){target=stack[levels[i]];break;}}
+        const artEntry={id:d.id,status:d.status||"vigente"};
+        if(target){target.artigos.push(artEntry);}
+        // Articles outside any division are rare, but handle gracefully
+      }
     }
-    groups.push(grp);
-    const labels=groups.map(g=>g.length>=3?g[0]+" a "+g[g.length-1]:g.join(", "));
-    return <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}}>{labels.map((l,i)=><span key={i} style={{background:"var(--gold-subtle)",color:"var(--gold)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{l}</span>)}</div>;
+    return mapa;
+  },[ds]);
+
+  // Get full article content + sub-devices for the detail panel
+  const artDetail=useMemo(()=>{
+    if(!selArt)return null;
+    const result=[];let inside=false;
+    for(const d of ds){
+      if(d.tipo==="ARTIGO"&&d.id===selArt){
+        inside=true;result.push(d);continue;
+      }
+      if(inside){
+        if(d.tipo==="ARTIGO"||DIV.has(d.tipo))break;
+        result.push(d);
+      }
+    }
+    return result.length>0?result:null;
+  },[ds,selArt]);
+
+  // Compute the hierarchy path for the selected article
+  const artPath=useMemo(()=>{
+    if(!selArt)return"";
+    const ctx=hierarquia(ds);
+    return ctx[selArt]||"";
+  },[ds,selArt]);
+
+  // Render article badges
+  const renderArtigos=(artigos,pathKey)=>{
+    if(!artigos||artigos.length===0)return null;
+    return <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:4,marginLeft:4}}>
+      {artigos.map((a,i)=>{
+        const isRev=a.status==="revogado";
+        const isVet=a.status==="vetado";
+        const isInativo=isRev||isVet;
+        const isSel=selArt===a.id;
+        return <span key={pathKey+"-"+i}
+          onClick={(e)=>{e.stopPropagation();setSelArt(a.id);}}
+          style={{
+            background:isSel?"var(--gold)":isInativo?"rgba(231,76,60,0.15)":"var(--gold-subtle)",
+            color:isSel?"#fff":isInativo?"#e74c3c":"var(--gold)",
+            padding:"2px 7px",borderRadius:4,fontSize:11,cursor:"pointer",
+            textDecoration:isInativo?"line-through":"none",
+            fontWeight:isSel?700:400,
+            transition:"all .12s",
+            border:isSel?"1px solid var(--gold)":"1px solid transparent"
+          }}
+          title={isRev?"Revogado":isVet?"Vetado":"Vigente"}
+        >{a.id}</span>;
+      })}
+    </div>;
   };
 
-  const renderSec=(s,i)=><div key={i} style={{marginLeft:16,marginTop:6,padding:"6px 10px",borderLeft:"2px solid var(--border)",background:"var(--bg-hover)",borderRadius:"0 6px 6px 0"}}>
-    <div style={{fontSize:12,color:"var(--text-sec)"}}><b style={{color:"var(--gold)"}}>{s.id}</b> — {s.rub}</div>
-    {renderArtigos(s.artigos)}
-  </div>;
+  // Recursive render for any hierarchy level
+  const renderNode=(node,depth,pathKey)=>{
+    const key=pathKey+"-"+node.id;
+    const isOpen=!collapsed[key];
+    const hasContent=(node.children&&node.children.length>0)||(node.artigos&&node.artigos.length>0);
 
-  const renderCap=(c,i)=><div key={i} style={{marginLeft:8,marginTop:8,padding:"8px 12px",background:"var(--bg-hover)",borderRadius:8,border:"1px solid var(--border)"}}>
-    <div style={{fontSize:13,fontWeight:600}}><span style={{color:"var(--gold)"}}>{c.id}</span> — {c.rub}</div>
-    {renderArtigos(c.artigos)}
-    {c.secs&&c.secs.map(renderSec)}
-  </div>;
+    // Color/style by level type
+    const levelStyle={
+      "PARTE":{bg:"var(--grad)",color:"#fff",fontWeight:700,fontSize:14,borderRadius:8,padding:"10px 14px"},
+      "LIVRO":{bg:"var(--gold)",color:"#fff",fontWeight:700,fontSize:13,borderRadius:7,padding:"8px 12px"},
+      "TÍTULO":{bg:"var(--gold-subtle)",color:"var(--gold)",fontWeight:600,fontSize:13,borderRadius:6,padding:"7px 12px"},
+      "CAPÍTULO":{bg:"var(--bg-hover)",color:"var(--text)",fontWeight:600,fontSize:12,borderRadius:6,padding:"6px 10px"},
+      "SEÇÃO":{bg:"transparent",color:"var(--text-sec)",fontWeight:500,fontSize:12,borderRadius:4,padding:"4px 10px"},
+      "SUBSEÇÃO":{bg:"transparent",color:"var(--text-mute)",fontWeight:400,fontSize:11,borderRadius:4,padding:"4px 10px"}
+    };
+    const st=levelStyle[node.tipo]||levelStyle["SEÇÃO"];
+    const indent=depth*12;
 
-  return <div style={{display:"flex",flexDirection:"column",gap:12,maxHeight:"70vh",overflow:"auto"}}>{estrutura.map((t,i)=>
-    <div key={i} className="cd" style={{padding:14}}>
-      <div style={{fontWeight:700,fontSize:14,color:"var(--gold)",marginBottom:2}}>{t.id}</div>
-      <div style={{fontSize:13,color:"var(--text-sec)",marginBottom:6}}>{t.rub}</div>
-      {renderArtigos(t.artigos)}
-      {t.caps&&t.caps.map(renderCap)}
+    return <div key={key} style={{marginLeft:indent,marginTop:depth===0?8:4}}>
+      <div
+        onClick={()=>{if(hasContent)toggle(key);}}
+        style={{background:st.bg,color:st.color,fontWeight:st.fontWeight,fontSize:st.fontSize,borderRadius:st.borderRadius,padding:st.padding,cursor:hasContent?"pointer":"default",display:"flex",alignItems:"center",gap:6,border:node.tipo==="CAPÍTULO"||node.tipo==="SEÇÃO"?"1px solid var(--border)":"none",transition:"opacity .12s",userSelect:"none"}}
+      >
+        {hasContent&&<span style={{fontSize:10,opacity:.7,flexShrink:0,transition:"transform .15s",transform:isOpen?"rotate(90deg)":"rotate(0deg)"}}>▶</span>}
+        <span style={{fontFamily:"'Segoe UI',sans-serif"}}>{node.tipo} — </span>
+        <b>{node.id}</b>
+        {node.rub&&<span style={{opacity:.8,marginLeft:4}}>— {node.rub}</span>}
+        {node.artigos&&node.artigos.length>0&&<span style={{marginLeft:"auto",fontSize:10,opacity:.6,flexShrink:0}}>{node.artigos.length} art.</span>}
+      </div>
+      {isOpen&&<div>
+        {renderArtigos(node.artigos,key)}
+        {node.children&&node.children.map((child,i)=>renderNode(child,depth+1,key+"-"+i))}
+      </div>}
+    </div>;
+  };
+
+  return <div style={{display:"flex",gap:16,height:"70vh"}}>
+    {/* Painel esquerdo: árvore hierárquica */}
+    <div style={{flex:"1 1 55%",overflow:"auto",paddingRight:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{fontSize:13,fontWeight:700,color:"var(--gold)"}}>ESTRUTURA HIERÁRQUICA</div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>setCollapsed({})} style={{fontSize:11,padding:"3px 8px",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:4,cursor:"pointer",color:"var(--text-sec)"}}>Expandir tudo</button>
+          <button onClick={()=>{
+            const all={};
+            const markAll=(nodes,prefix)=>{
+              nodes.forEach((n,i)=>{
+                const k=prefix+"-"+n.id;
+                const hasContent=(n.children&&n.children.length>0)||(n.artigos&&n.artigos.length>0);
+                if(hasContent)all[k]=true;
+                if(n.children)markAll(n.children,k+"-"+i);
+              });
+            };
+            markAll(estrutura,"root");
+            setCollapsed(all);
+          }} style={{fontSize:11,padding:"3px 8px",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:4,cursor:"pointer",color:"var(--text-sec)"}}>Colapsar tudo</button>
+        </div>
+      </div>
+      <div style={{fontSize:11,color:"var(--text-mute)",marginBottom:6,display:"flex",gap:12}}>
+        <span>● <span style={{color:"var(--gold)"}}>Vigente</span></span>
+        <span>● <span style={{color:"#e74c3c"}}>Revogado/Vetado</span></span>
+        <span style={{marginLeft:"auto",fontStyle:"italic"}}>Clique no artigo para ver o conteúdo →</span>
+      </div>
+      {estrutura.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma estrutura hierárquica encontrada</div>
+      :estrutura.map((node,i)=>renderNode(node,0,"root"))}
     </div>
-  )}</div>;
+    {/* Painel direito: conteúdo do artigo selecionado */}
+    <div style={{flex:"0 0 40%",minWidth:300,overflow:"auto",background:"var(--bg-hover)",borderRadius:12,border:"1px solid var(--border)",padding:16}}>
+      {!selArt?<div style={{textAlign:"center",paddingTop:80,color:"var(--text-sec)"}}>
+        <div style={{fontSize:28,marginBottom:12}}>📑</div>
+        <div style={{fontSize:14}}>Selecione um artigo no mapa para visualizar seu conteúdo.</div>
+      </div>
+      :!artDetail?<div style={{textAlign:"center",paddingTop:80,color:"var(--text-sec)"}}>Artigo não encontrado nos dispositivos.</div>
+      :<div className="fade">
+        {artPath&&<div style={{fontSize:11,color:"var(--text-sec)",marginBottom:8,fontStyle:"italic",lineHeight:1.5}}>{artPath}</div>}
+        {artDetail.map((d,i)=>{
+          const isArt=d.tipo==="ARTIGO";
+          const isRev=d.status==="revogado";
+          const isVet=d.status==="vetado";
+          const isInativo=isRev||isVet;
+          return <div key={i} style={{marginBottom:isArt?8:2,paddingLeft:isArt?0:16,opacity:isInativo?0.6:1}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+              <span style={{color:isInativo?"#e74c3c":"var(--gold)",fontWeight:700,fontSize:isArt?14:12}}>{d.id}</span>
+              {isArt&&<span className={isInativo?"badge badge-revogado":"badge badge-vigente"}>{isVet?"VETADO":isRev?"REVOGADO":"VIGENTE"}</span>}
+              {!isArt&&isInativo&&<span className="badge badge-revogado" style={{fontSize:9}}>{isVet?"VETADO":"REVOGADO"}</span>}
+            </div>
+            <div style={{fontSize:isArt?13:12,lineHeight:1.6,textDecoration:isInativo?"line-through":"none",color:"var(--text)"}}>
+              {d.rub&&<i style={{color:"var(--text-sec)"}}>{d.rub} </i>}
+              {d.txt}
+            </div>
+            {d.alteracao&&<div style={{marginTop:2,padding:"2px 8px",background:"rgba(52,152,219,0.08)",borderLeft:"2px solid #3498db",borderRadius:3,fontSize:11,color:"#3498db",textDecoration:"none"}}>↳ {d.alteracao}</div>}
+          </div>;
+        })}
+      </div>}
+    </div>
+  </div>;
 }
 
 function TabAnexos({lei,addAnexo,delAnexo}){const [uping,setUp]=useState(false);const [selAnx,setSelAnx]=useState(null);const fRef=useRef(null);
