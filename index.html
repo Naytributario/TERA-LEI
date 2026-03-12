@@ -81,7 +81,8 @@ const CT={get TÍTULO(){return getCS("--gold")},get CAPÍTULO(){return getCS("--
 function idT(s){for(const p of PATS)if(p.r.test(s.trim()))return p.t;return null;}
 function exId(t,s){s=s.trim();if(DIV.has(t))return s;const R={ARTIGO:/^(Art\.\s*\d+[ºo°]?[\-\.]?)/,PARÁGRAFO:/^(§\s*\d+[ºo°]?\.?|Par[áa]grafo\s+[úu]nico\.?)/i,INCISO:/^([IVXLCDM]+)\s*[\-–—]/,ALÍNEA:/^([a-z]\))/,ITEM:/^(\d+\.)/};const m=R[t]?.exec(s);return m?m[1].trim():s.slice(0,30);}
 function exTx(t,s){s=s.trim();if(DIV.has(t))return"";const R={ARTIGO:/^Art\.\s*\d+[ºo°]?[\s\-\.]+(.+)/,PARÁGRAFO:/^(?:§\s*\d+[ºo°]?\.?\s+|Par[áa]grafo\s+[úu]nico\.?\s+)(.+)/i,INCISO:/^[IVXLCDM]+\s*[\-–—]\s+(.+)/,ALÍNEA:/^[a-z]\)\s+(.+)/,ITEM:/^\d+\.\s+(.+)/};const m=R[t]?.exec(s);return m?m[1].trim():s;}
-function parse(txt){const ds=[];let a=null,ag=false;for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){a={tipo:t,id:exId(t,s),rub:"",txt:exTx(t,s)};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else a.txt=a.txt?a.txt+" "+s:s;}}return ds;}
+function parse(txt){const ds=[];let a=null,ag=false;const reAltera=/\[?\s*(Reda[çc][ãa]o dada pel[oa]\(a\)[^\]]*|Inclu[ií]d[oa]\(a\) pel[oa]\(a\)[^\]]*|Revogad[oa]\(a\) pel[oa]\(a\)[^\]]*)\]?/gi;const reVetado=/\(\s*(?:VETADO|Vetado|vetado)\s*\)/;const reRevogado=/\(\s*(?:REVOGADO|Revogado|revogado)\s*\)/;
+  for(const l of txt.split("\n")){const s=l.trim();if(!s){if(ag&&a)ag=false;continue;}const t=idT(s);if(t){let alteracao="";let status="vigente";const altM=s.match(reAltera);if(altM)alteracao=altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleanTxt=s.replace(reAltera,"").trim();if(reVetado.test(cleanTxt))status="vetado";else if(reRevogado.test(cleanTxt))status="revogado";a={tipo:t,id:exId(t,cleanTxt),rub:"",txt:exTx(t,cleanTxt),status,alteracao};ds.push(a);ag=DIV.has(t);}else if(a){if(ag&&!a.rub){a.rub=s;ag=false;}else{const altM=s.match(reAltera);if(altM){a.alteracao=a.alteracao?(a.alteracao+"; "+altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ")):altM.map(m=>m.replace(/^\[|\]$/g,"").trim()).join("; ");const cleaned=s.replace(reAltera,"").trim();if(cleaned)a.txt=a.txt?a.txt+" "+cleaned:cleaned;}else{a.txt=a.txt?a.txt+" "+s:s;}}if(reVetado.test(a.txt))a.status="vetado";if(reRevogado.test(a.txt))a.status="revogado";}}return ds;}
 
 // Analysis functions
 function extrairRemissoes(ds){const re=/(?:§\s*\d+[ºo°]?\s+d[oe]\s+)?(?:arts?\.\s*)(\d+[ºo°]?(?:\s*(?:,|e|a)\s*\d+[ºo°]?)*)/gi;const res=[];let art="";
@@ -115,8 +116,6 @@ async function pdfToText(f){const ab=await f.arrayBuffer();const pdf=await pdfjs
   fullText=fullText.replace(/ (LIVRO\s+[IVXLCDM])/g,"\n$1");
   fullText=fullText.replace(/\s*(?:\u0000|\ufffd)?\s*ANEXO\s+[IVXLCDM]+\.pdf/gi,"");
   fullText=fullText.replace(/ANEXO\s+[IVXLCDM]+\.pdf/gi,"");
-  fullText=fullText.replace(/\s*\[?\s*Reda[çc][ãa]o dada pel[oa]\(a\)[^\]]*\]?\s*/gi," ");
-  fullText=fullText.replace(/\s*\[?\s*Inclu[ií]d[oa]\(a\) pel[oa]\(a\)[^\]]*\]?\s*/gi," ");
   fullText=fullText.replace(/\* Este texto não substitui o publicado oficialmente\./gi,"");
   return fullText;}
 function LS(k,v){if(v===undefined){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null}catch(e){console.warn("Erro ao ler localStorage:",e);return null}}try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn("Erro ao escrever localStorage:",e);}}
@@ -148,6 +147,8 @@ function App(){
   const uSt=(lid,di,f,v)=>{const k=`${lid}-${di}`;const n={...study,[k]:{...study[k],[f]:v}};setStudy(n);LS("t3-st",n);};
   const gSt=(lid,di,f)=>study[`${lid}-${di}`]?.[f]||"";
   const saveKey=k=>{setApiKey(k);LS("t3-key",k);};
+  const exportBackup=()=>{try{const data={lib,study,apiKey,area,exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="TERA_backup_"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(url);}catch(e){alert("Erro ao exportar: "+e.message);}};
+  const importBackup=()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".json";inp.onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const txt=await f.text();const data=JSON.parse(txt);if(data.lib){setLib(data.lib);LS("t3-lib",data.lib);}if(data.study){setStudy(data.study);LS("t3-st",data.study);}if(data.apiKey){setApiKey(data.apiKey);LS("t3-key",data.apiKey);}alert("Backup restaurado com sucesso! "+((data.lib||[]).length)+" leis e "+(Object.keys(data.study||{}).length)+" anotações importadas.");}catch(e){alert("Erro ao importar: "+e.message);}};inp.click();};
   const nav=[{id:"library",ic:IC.bk,lb:"Biblioteca"},...(sel?[{id:"reader",ic:IC.ls,lb:sel.nome.slice(0,20)}]:[]),{id:"reforma",ic:IC.sc,lb:"Reforma"},{id:"atualizacoes",ic:IC.bl,lb:"Atualizações"}];
 
   return <div style={{minHeight:"100vh"}}>
@@ -159,6 +160,8 @@ function App(){
       <nav style={{display:"flex",gap:2,overflowX:"auto"}}>{nav.map(n=><button key={n.id} className={`nb ${vw===n.id?"on":""}`} onClick={()=>setVw(n.id)}><Ic d={n.ic} s={14} c={vw===n.id?"var(--gold)":"var(--text-sec)"}/>{n.lb}</button>)}</nav>
       <div style={{display:"flex",gap:6,alignItems:"center"}}>
         <ThemeBtn theme={theme} toggle={toggleTheme}/>
+        <button onClick={exportBackup} title="Exportar Backup (Leis + Anotações)" style={{fontSize:11,color:"var(--text-sec)",padding:"5px 8px",border:"1px solid var(--border)",borderRadius:5,background:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:3}}><Ic d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" s={11} c="var(--text-sec)"/>Backup</button>
+        <button onClick={importBackup} title="Importar Backup" style={{fontSize:11,color:"var(--text-sec)",padding:"5px 8px",border:"1px solid var(--border)",borderRadius:5,background:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:3}}><Ic d={IC.up} s={11} c="var(--text-sec)"/>Restaurar</button>
         <a href="https://www.planalto.gov.br" target="_blank" style={{fontSize:12,color:"var(--text-sec)",textDecoration:"none",padding:"5px 8px",border:"1px solid var(--border)",borderRadius:5,display:"flex",alignItems:"center",gap:3}}><Ic d={IC.lk} s={11} c="var(--text-sec)"/>Fontes</a>
         <select value={area} onChange={e=>setArea(e.target.value)} style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:5,color:"var(--text)",padding:"5px 8px",fontSize:11}}>{Object.entries(AREAS).map(([k,v])=><option key={k} value={k}>{v.nome}</option>)}</select>
       </div>
@@ -222,13 +225,19 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
   };
 
   const exportXlsx=()=>{try{const wb=XLSX.utils.book_new();
-    const txData=[["#","Tipo","Identificador","Rubrica","Texto"],...ds.map((d,i)=>[i+1,d.tipo,d.id,d.rub,d.txt])];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(txData),"Texto Integral");
-    const ctx=hierarquia(ds);let art="";const estData=[["Localização","Artigo","Dispositivo","Texto","Status","Dificuldade","Anotação"]];
-    for(let i=0;i<ds.length;i++){const d=ds[i];if(d.tipo==="ARTIGO")art=d.id;if(!DIV.has(d.tipo))estData.push([ctx[art]||"",art,d.id,d.txt,gSt(lei.id,i,"status"),gSt(lei.id,i,"dif"),gSt(lei.id,i,"note")]);}
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(estData),"Estudo Guiado");
+    // Texto Integral
+    const txData=[["#","Tipo","Identificador","Rubrica","Texto","Status Legal","Alteração"],...ds.map((d,i)=>[i+1,d.tipo,d.id,d.rub,d.txt,d.status||"vigente",d.alteracao||""])];
+    const wsTx=XLSX.utils.aoa_to_sheet(txData);
+    wsTx["!cols"]=[{wch:6},{wch:14},{wch:18},{wch:40},{wch:80},{wch:12},{wch:50}];
+    XLSX.utils.book_append_sheet(wb,wsTx,"Texto Integral");
+    // Estudo Guiado
+    const ctx=hierarquia(ds);let art="";const estData=[["Localização","Artigo","Dispositivo","Texto","Status Estudo","Dificuldade","Anotação","Status Legal"]];
+    for(let i=0;i<ds.length;i++){const d=ds[i];if(d.tipo==="ARTIGO")art=d.id;if(!DIV.has(d.tipo))estData.push([ctx[art]||"",art,d.id,d.txt,gSt(lei.id,i,"status"),gSt(lei.id,i,"dif"),gSt(lei.id,i,"note"),d.status||"vigente"]);}
+    const wsEst=XLSX.utils.aoa_to_sheet(estData);
+    wsEst["!cols"]=[{wch:40},{wch:12},{wch:18},{wch:70},{wch:14},{wch:14},{wch:40},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,wsEst,"Estudo Guiado");
     
-    // Aba Teia no Excel
+    // Teia
     const teiaData = [["Artigo Origem", "Caminho da Teia (Texto Integral)"]];
     const artigos = ds.filter(d => d.tipo === "ARTIGO");
     artigos.forEach(a => {
@@ -238,14 +247,25 @@ function Reader({lei,area,gSt,uSt,apiKey,saveKey,addAnexo,delAnexo,study}){
         teiaData.push([a.id, pathText]);
       }
     });
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(teiaData),"Teia de Remissões");
+    const wsTeia=XLSX.utils.aoa_to_sheet(teiaData);
+    wsTeia["!cols"]=[{wch:16},{wch:100}];
+    XLSX.utils.book_append_sheet(wb,wsTeia,"Teia de Remissões");
 
+    // Remissões
     const rem=extrairRemissoes(ds);const remData=[["#","Origem","Dispositivo","Referência","Contexto"],...rem.map((r,i)=>[i+1,r.origem,r.disp,r.destino,r.ctx])];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(remData),"Remissões");
+    const wsRem=XLSX.utils.aoa_to_sheet(remData);
+    wsRem["!cols"]=[{wch:6},{wch:14},{wch:18},{wch:14},{wch:80}];
+    XLSX.utils.book_append_sheet(wb,wsRem,"Remissões");
+    // Prazos e Valores
     const pv=extrairPrazosValores(ds);const pvData=[["#","Tipo","Conteúdo","Artigo","Capítulo","Contexto"],...pv.map((r,i)=>[i+1,r.tipo,r.val,r.art,r.cap,r.ctx])];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pvData),"Prazos e Valores");
+    const wsPv=XLSX.utils.aoa_to_sheet(pvData);
+    wsPv["!cols"]=[{wch:6},{wch:18},{wch:22},{wch:12},{wch:35},{wch:80}];
+    XLSX.utils.book_append_sheet(wb,wsPv,"Prazos e Valores");
+    // Índice Remissivo
     const idx=buildIdx(ds,area);const idxData=[["Palavra-chave","Artigos","Qtd"],...Object.entries(idx).map(([p,a])=>[p,a.join(", "),a.length])];
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(idxData),"Índice Remissivo");
+    const wsIdx=XLSX.utils.aoa_to_sheet(idxData);
+    wsIdx["!cols"]=[{wch:25},{wch:80},{wch:8}];
+    XLSX.utils.book_append_sheet(wb,wsIdx,"Índice Remissivo");
     XLSX.writeFile(wb,lei.nome+"_TERA.xlsx");}catch(e){alert("Erro ao exportar: "+e.message);}};
 
   return <div className="fade">
@@ -277,13 +297,18 @@ function TabTexto({ds,lei,gSt,uSt,initialSearch}){const [srch,setSrch]=useState(
   const ind={TÍTULO:0,CAPÍTULO:12,SEÇÃO:24,SUBSEÇÃO:36,ARTIGO:0,PARÁGRAFO:20,INCISO:36,ALÍNEA:52,ITEM:68};
   const sts=["","Não lido","Lido","Revisando","Dominado","Dúvida"];const sC={Dominado:"#27AE60",Dúvida:"#C0392B",Revisando:"#D4A017",Lido:"#2E86AB"};
   return <div><div style={{marginBottom:10}}><input value={srch} onChange={e=>setSrch(e.target.value)} placeholder="Buscar na lei..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/></div>
-    <div style={{maxHeight:"68vh",overflow:"auto",border:"1px solid var(--border)",borderRadius:8}}>{fd.map((d,i)=>{const ri=ds.indexOf(d);const isD=DIV.has(d.tipo);const st=gSt(lei.id,ri,"status");const nt=gSt(lei.id,ri,"note");
-      return <div key={ri} style={{display:"flex",borderBottom:"1px solid var(--border)",background:isD?CT[d.tipo]||"#F5EDDF":ri%2===0?"#fff":"#FAF7F2",paddingLeft:ind[d.tipo]||0}}>
-        <div style={{minWidth:70,padding:"6px 4px",textAlign:"center"}}><span className="badge" style={{background:isD?"rgba(0,0,0,.1)":"#F3EDE4",color:isD?(d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#5C554A"):"#8A8279"}}>{d.tipo}</span></div>
-        <div style={{flex:1,padding:"6px 8px",fontSize:12.5,lineHeight:1.6,color:isD?(d.tipo==="TÍTULO"?"#fff":"#2D2A26"):"#2D2A26",fontWeight:isD||d.tipo==="ARTIGO"?600:400}}>
-          <span style={{color:isD?"inherit":"#B8965A",fontFamily:"'Segoe UI',sans-serif",fontSize:12,marginRight:4}}>{d.id}</span>
+    <div style={{maxHeight:"68vh",overflow:"auto",border:"1px solid var(--border)",borderRadius:8}}>{fd.map((d,i)=>{const ri=ds.indexOf(d);const isD=DIV.has(d.tipo);const st=gSt(lei.id,ri,"status");const nt=gSt(lei.id,ri,"note");const isVetado=d.status==="vetado";const isRevogado=d.status==="revogado";
+      return <div key={ri} style={{display:"flex",borderBottom:"1px solid var(--border)",background:isVetado?"rgba(231,76,60,0.06)":isRevogado?"rgba(231,76,60,0.04)":isD?CT[d.tipo]||"#F5EDDF":ri%2===0?"#fff":"#FAF7F2",paddingLeft:ind[d.tipo]||0}}>
+        <div style={{minWidth:70,padding:"6px 4px",textAlign:"center"}}>
+          <span className="badge" style={{background:isD?"rgba(0,0,0,.1)":"#F3EDE4",color:isD?(d.tipo==="TÍTULO"||d.tipo==="CAPÍTULO"?"#fff":"#5C554A"):"#8A8279"}}>{d.tipo}</span>
+          {isVetado&&<div><span className="badge badge-revogado" style={{marginTop:3,display:"inline-block"}}>VETADO</span></div>}
+          {isRevogado&&<div><span className="badge badge-revogado" style={{marginTop:3,display:"inline-block"}}>REVOGADO</span></div>}
+        </div>
+        <div style={{flex:1,padding:"6px 8px",fontSize:12.5,lineHeight:1.6,color:isD?(d.tipo==="TÍTULO"?"#fff":"#2D2A26"):"#2D2A26",fontWeight:isD||d.tipo==="ARTIGO"?600:400,textDecoration:(isVetado||isRevogado)?"line-through":"none",opacity:(isVetado||isRevogado)?0.6:1}}>
+          <span style={{color:isD?"inherit":"#B8965A",fontFamily:"'Segoe UI',sans-serif",fontSize:12,marginRight:4,textDecoration:"none"}}>{d.id}</span>
           {d.rub&&<i style={{opacity:.7}}>{d.rub} </i>}{d.txt}
-          {nt&&<div style={{marginTop:3,padding:"2px 6px",background:"var(--gold-subtle)",borderLeft:"2px solid #B8965A",borderRadius:3,fontSize:11,color:"var(--gold)"}}>{nt}</div>}
+          {d.alteracao&&<div style={{marginTop:3,padding:"2px 8px",background:"rgba(52,152,219,0.08)",borderLeft:"2px solid #3498db",borderRadius:3,fontSize:11,color:"#3498db",textDecoration:"none",fontWeight:400,opacity:1}}>↳ {d.alteracao}</div>}
+          {nt&&<div style={{marginTop:3,padding:"2px 6px",background:"var(--gold-subtle)",borderLeft:"2px solid #B8965A",borderRadius:3,fontSize:11,color:"var(--gold)",textDecoration:"none",fontWeight:400,opacity:1}}>{nt}</div>}
         </div>
         {!isD&&<div style={{minWidth:100,padding:"5px 4px",display:"flex",flexDirection:"column",gap:3}}>
           <select value={st} onChange={e=>uSt(lei.id,ri,"status",e.target.value)} style={{background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:3,color:sC[st]||"#8A8279",padding:"2px",fontSize:11,cursor:"pointer"}}>{sts.map(s=><option key={s} value={s}>{s||"Status"}</option>)}</select>
@@ -293,8 +318,8 @@ function TabTexto({ds,lei,gSt,uSt,initialSearch}){const [srch,setSrch]=useState(
 }
 
 function TabArtigos({ds}){let art="";const rows=[];const tipos=new Set(["ARTIGO","PARÁGRAFO","INCISO","ALÍNEA","ITEM"]);
-  for(const d of ds){if(d.tipo==="ARTIGO")art=d.id;if(tipos.has(d.tipo))rows.push({art,tipo:d.tipo,id:d.id,rub:d.rub,txt:d.txt});}
-  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>Artigo</th><th>Tipo</th><th>Identificador</th><th>Rubrica</th><th>Texto</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i}><td style={{fontWeight:700,color:"var(--gold)"}}>{r.art}</td><td><span className="badge" style={{background:"var(--gold-subtle)",color:"var(--gold)"}}>{r.tipo}</span></td><td style={{fontSize:12}}>{r.id}</td><td style={{fontSize:12,fontStyle:"italic"}}>{r.rub}</td><td style={{fontSize:12}}>{r.txt}</td></tr>)}</tbody></table></div>;}
+  for(const d of ds){if(d.tipo==="ARTIGO")art=d.id;if(tipos.has(d.tipo))rows.push({art,tipo:d.tipo,id:d.id,rub:d.rub,txt:d.txt,status:d.status||"vigente",alteracao:d.alteracao||""});}
+  return <div style={{maxHeight:"70vh",overflow:"auto"}}><table className="dt"><thead><tr><th>Artigo</th><th>Tipo</th><th>Identificador</th><th>Status</th><th>Texto</th><th>Alteração</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i} style={{opacity:r.status==="vetado"||r.status==="revogado"?0.5:1}}><td style={{fontWeight:700,color:"var(--gold)"}}>{r.art}</td><td><span className="badge" style={{background:"var(--gold-subtle)",color:"var(--gold)"}}>{r.tipo}</span></td><td style={{fontSize:12}}>{r.id}</td><td>{r.status==="vetado"?<span className="badge badge-revogado">VETADO</span>:r.status==="revogado"?<span className="badge badge-revogado">REVOGADO</span>:<span className="badge badge-vigente">VIGENTE</span>}</td><td style={{fontSize:12,textDecoration:r.status!=="vigente"?"line-through":"none"}}>{r.txt}</td><td style={{fontSize:11,color:"var(--text-sec)"}}>{r.alteracao}</td></tr>)}</tbody></table></div>;}
 
 function TabEstudo({ds,lei,gSt,uSt}){
   const [filtroStatus,setFiltroStatus]=useState("");
@@ -405,7 +430,7 @@ function TabTeia({ds, buildRecursiveChain}){
 
 function TabPrazos({ds}){const pv=useMemo(()=>extrairPrazosValores(ds),[ds]);return <div style={{maxHeight:"70vh",overflow:"auto"}}>{pv.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhum prazo ou valor encontrado</div>:<table className="dt"><thead><tr><th>Tipo</th><th>Conteúdo</th><th>Artigo</th><th>Capítulo</th><th>Contexto</th></tr></thead><tbody>{pv.map((p,i)=><tr key={i}><td><span className="badge" style={{background:"var(--gold-subtle)",color:"var(--gold)"}}>{p.tipo}</span></td><td style={{fontWeight:600}}>{p.val}</td><td>{p.art}</td><td style={{fontSize:12}}>{p.cap}</td><td style={{fontSize:12}}>{p.ctx}</td></tr>)}</tbody></table>}</div>;}
 
-function TabIndice({ds,area,onGoToArt}){const idx=useMemo(()=>buildIdx(ds,area),[ds,area]);return <div><div style={{marginBottom:12}}><input placeholder="Buscar palavra-chave..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>{Object.entries(idx).map(([palavra,artigos])=><div key={palavra} className="cd" style={{padding:12,cursor:"pointer"}} onClick={()=>onGoToArt(artigos[0])}><div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{palavra}</div><div style={{fontSize:11,color:"var(--text-sec)"}}>{artigos.length} artigo(s): {artigos.slice(0,3).join(", ")}{artigos.length>3?"...":""}</div></div>)}</div></div>;}
+function TabIndice({ds,area,onGoToArt}){const idx=useMemo(()=>buildIdx(ds,area),[ds,area]);const [filtro,setFiltro]=useState("");const filtered=useMemo(()=>{if(!filtro.trim())return Object.entries(idx);const f=filtro.trim().toLowerCase();return Object.entries(idx).filter(([palavra])=>palavra.toLowerCase().includes(f));},[idx,filtro]);return <div><div style={{marginBottom:12}}><input value={filtro} onChange={e=>setFiltro(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();if(filtered.length===1)onGoToArt(filtered[0][1][0]);}}} placeholder="Buscar palavra-chave..." style={{width:"100%",maxWidth:"100%",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 14px",fontSize:14,boxSizing:"border-box"}}/></div>{filtered.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma palavra-chave encontrada para "{filtro}"</div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>{filtered.map(([palavra,artigos])=><div key={palavra} className="cd" style={{padding:12,cursor:"pointer"}} onClick={()=>onGoToArt(artigos[0])}><div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{palavra}</div><div style={{fontSize:11,color:"var(--text-sec)"}}>{artigos.length} artigo(s): {artigos.slice(0,3).join(", ")}{artigos.length>3?"...":""}</div></div>)}</div>}</div>;}
 
 function TabMapa({ds}){const estrutura=useMemo(()=>{const mapa={};let secaoAtual="";for(const d of ds){if(d.tipo==="SEÇÃO"){secaoAtual=d.id;mapa[secaoAtual]={titulo:d.rub,artigos:[]};}else if(d.tipo==="ARTIGO"&&secaoAtual){mapa[secaoAtual].artigos.push(d.id);}}return mapa;},[ds]);return <div style={{display:"flex",flexDirection:"column",gap:12}}>{Object.entries(estrutura).map(([secao,dados])=><div key={secao} className="cd" style={{padding:14}}><div style={{fontWeight:600,fontSize:13,marginBottom:8,color:"var(--gold)"}}>{secao}</div><div style={{fontSize:12,color:"var(--text-sec)",marginBottom:6}}>{dados.titulo}</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{dados.artigos.map(art=><span key={art} style={{background:"var(--gold-subtle)",color:"var(--gold)",padding:"2px 8px",borderRadius:4,fontSize:11}}>{art}</span>)}</div></div>)}</div>;}
 
@@ -450,18 +475,44 @@ function TabTutor({lei,area,apiKey,saveKey}){const [msgs,setMsgs]=useState([]);c
 }
 
 // ═══ REFORMA ═══
-function Ref({apiKey,saveKey}){const [sub,setSub]=useState("leg");const subs=[{id:"leg",lb:"Legislação"},{id:"timeline",lb:"Minha Timeline"},{id:"tutor",lb:"Tutor Reforma"}];
+const REFORMA=[
+  {n:"EC 132/2023",d:"Emenda Constitucional da Reforma Tributária. Institui IBS, CBS e Imposto Seletivo em substituição a PIS, COFINS, IPI, ICMS e ISS. Período de transição: 2026-2033."},
+  {n:"LC 214/2025",d:"Lei Complementar que regulamenta o IBS, a CBS e o Imposto Seletivo. Detalha regras de incidência, base de cálculo, alíquotas, créditos, regimes específicos e o split payment."},
+  {n:"LC 227/2026 (prevista)",d:"Complementação normativa da Reforma. Regulamentação adicional do Comitê Gestor do IBS e procedimentos de transição."},
+  {n:"IN RFB nº 2.121/2022",d:"Instrução Normativa que consolida a legislação de PIS/COFINS. Vigente durante o período de transição até a plena implementação da CBS."},
+  {n:"Lei nº 10.637/2002",d:"PIS não cumulativo. Regime vigente durante a transição, com redução gradual de alíquotas a partir de 2027."},
+  {n:"Lei nº 10.833/2003",d:"COFINS não cumulativa. Regime vigente durante a transição, com redução gradual de alíquotas a partir de 2027."},
+  {n:"Lei nº 9.718/1998",d:"PIS/COFINS cumulativo. Regime vigente durante a transição para os contribuintes não sujeitos à não cumulatividade."},
+];
+function Ref({apiKey,saveKey}){const [sub,setSub]=useState("leg");const [tMsgs,setTMsgs]=useState([]);const [tInp,setTInp]=useState("");const [tLd,setTLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);const cr=useRef(null);const subs=[{id:"leg",lb:"Legislação"},{id:"timeline",lb:"Timeline Transição"},{id:"tutor",lb:"Tutor Reforma"}];
+  const TIMELINE=[{ano:"2023",ev:"EC 132/2023 promulgada",det:"Aprovação da Emenda Constitucional da Reforma Tributária."},{ano:"2025",ev:"LC 214/2025 publicada",det:"Regulamentação do IBS, CBS e Imposto Seletivo."},{ano:"2026",ev:"Início do período de teste",det:"CBS a 0,9% e IBS a 0,1% (alíquota-teste). PIS/COFINS mantidos integralmente."},{ano:"2027",ev:"CBS substituindo PIS/COFINS",det:"CBS em vigor com alíquota de referência. PIS e COFINS extintos."},{ano:"2029-2032",ev:"Transição gradual ICMS/ISS → IBS",det:"Redução progressiva de ICMS e ISS: 90% em 2029, 80% em 2030, 70% em 2031, 60% em 2032."},{ano:"2033",ev:"Plena vigência",det:"IBS em alíquota plena. ICMS e ISS extintos. Sistema dual CBS+IBS consolidado."}];
+  const sendT=async()=>{if(!tInp.trim()||tLd||!apiKey)return;const m=tInp.trim();setTInp("");setTMsgs(p=>[...p,{role:"user",text:m}]);setTLd(true);try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1024,system:"Você é o TERA Tutor especialista em Reforma Tributária brasileira (EC 132/2023, LC 214/2025). Responda sobre IBS, CBS, Imposto Seletivo, split payment, não cumulatividade, transição, cashback.",messages:[{role:"user",content:m}]})});const d=await r.json();setTMsgs(p=>[...p,{role:"assistant",text:d.content?.[0]?.text||"Erro."}]);}catch(e){setTMsgs(p=>[...p,{role:"assistant",text:"Erro: "+e.message}]);}setTLd(false);};
+  useEffect(()=>{cr.current&&(cr.current.scrollTop=cr.current.scrollHeight);},[tMsgs]);
   return <div className="fade"><h2 style={{fontSize:20,fontWeight:700,marginBottom:12}}>Reforma Tributária</h2>
     <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--border)",marginBottom:14}}>{subs.map(s=><button key={s.id} className={`stab ${sub===s.id?"on":""}`} onClick={()=>setSub(s.id)}>{s.lb}</button>)}</div>
-    {sub==="leg"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:14}}><b>{r.n}</b><p style={{fontSize:13,color:"var(--text-sec)"}}>{r.d}</p></div>)}</div>}
+    {sub==="leg"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{REFORMA.map((r,i)=><div key={i} className="cd" style={{padding:14}}><b>{r.n}</b><p style={{fontSize:13,color:"var(--text-sec)",marginTop:4}}>{r.d}</p></div>)}</div>}
+    {sub==="timeline"&&<div style={{position:"relative",paddingLeft:30}}>{TIMELINE.map((t,i)=><div key={i} style={{position:"relative",marginBottom:20,paddingLeft:20}}>
+      <div style={{position:"absolute",left:-30,top:0,width:20,height:20,borderRadius:"50%",background:"var(--grad)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}></div></div>
+      {i<TIMELINE.length-1&&<div style={{position:"absolute",left:-21,top:20,width:2,height:"calc(100% + 4px)",background:"var(--border)"}}></div>}
+      <div className="cd" style={{padding:14}}><div style={{fontWeight:700,color:"var(--gold)",fontSize:15}}>{t.ano}</div><div style={{fontWeight:600,marginTop:4}}>{t.ev}</div><div style={{fontSize:13,color:"var(--text-sec)",marginTop:4}}>{t.det}</div></div>
+    </div>)}</div>}
+    {sub==="tutor"&&(!apiKey?<div className="cd" style={{padding:20}}><div style={{fontWeight:700,marginBottom:10}}>Configurar API Key</div><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-..." style={{width:"100%",padding:10,marginBottom:10,borderRadius:6}}/><button onClick={()=>saveKey(localKey)} className="btn-primary">Salvar</button></div>
+    :<div style={{display:"flex",flexDirection:"column",height:"60vh"}}>
+      <div ref={cr} style={{flex:1,overflowY:"auto",padding:10}}>{tMsgs.length===0&&<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Pergunte sobre a Reforma Tributária, IBS, CBS, Imposto Seletivo...</div>}{tMsgs.map((m,i)=><div key={i} style={{marginBottom:10,textAlign:m.role==="user"?"right":"left"}}><div style={{display:"inline-block",padding:10,borderRadius:10,maxWidth:"80%",background:m.role==="user"?"var(--grad)":"var(--bg-hover)",color:m.role==="user"?"#fff":"var(--text)",whiteSpace:"pre-wrap"}}>{m.text}</div></div>)}</div>
+      <div style={{display:"flex",gap:10}}><input value={tInp} onChange={e=>setTInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendT()} placeholder="Pergunte sobre a Reforma..." style={{flex:1,padding:10,borderRadius:6}}/><button onClick={sendT} className="btn-primary" disabled={tLd}>{tLd?<Sp/>:"Enviar"}</button></div>
+    </div>)}
   </div>;
 }
 
 // ═══ ATUALIZAÇÕES ═══
 function Atl({apiKey,saveKey}){
-  const [hist,setHist]=useState(()=>LS("t3-upd")||[]);const [ld,setLd]=useState(false);
-  const buscar=async()=>{if(!apiKey)return;setLd(true);try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1024,system:"Busque atualizações tributárias.",messages:[{role:"user",content:"Buscar agora"}]})});const d=await r.json();alert("Busca concluída.");}catch(e){alert("Erro: "+e.message);}setLd(false);};
-  return <div className="fade"><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><h2>Atualizações</h2><button onClick={buscar} className="btn-primary">{ld?"Buscando...":"Buscar Agora"}</button></div></div>;
+  const [hist,setHist]=useState(()=>LS("t3-upd")||[]);const [ld,setLd]=useState(false);const [localKey,setLocalKey]=useState(apiKey);
+  const buscar=async()=>{if(!apiKey){alert("Configure sua API Key primeiro.");return;}setLd(true);try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2048,system:"Você é um assistente especializado em legislação tributária brasileira. Forneça um resumo das últimas atualizações normativas tributárias federais relevantes (Instruções Normativas RFB, Leis Complementares, Decretos, Soluções de Consulta COSIT). Foque em PIS/COFINS, Simples Nacional e Reforma Tributária. Formato: lista com data, norma e breve descrição.",messages:[{role:"user",content:"Quais são as atualizações tributárias mais recentes? Data de hoje: "+new Date().toLocaleDateString("pt-BR")}]})});const d=await r.json();const texto=d.content?.[0]?.text||"Nenhuma atualização encontrada.";const nova={data:new Date().toLocaleDateString("pt-BR")+" "+new Date().toLocaleTimeString("pt-BR"),texto};const nh=[nova,...hist].slice(0,20);setHist(nh);LS("t3-upd",nh);}catch(e){alert("Erro: "+e.message);}setLd(false);};
+  if(!apiKey)return <div className="fade"><h2 style={{marginBottom:14}}>Atualizações</h2><div className="cd" style={{padding:20}}><div style={{fontWeight:700,marginBottom:10}}>Configurar API Key para buscar atualizações</div><input value={localKey} onChange={e=>setLocalKey(e.target.value)} placeholder="sk-ant-..." style={{width:"100%",padding:10,marginBottom:10,borderRadius:6}}/><button onClick={()=>saveKey(localKey)} className="btn-primary">Salvar</button></div></div>;
+  return <div className="fade"><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h2>Atualizações</h2><button onClick={buscar} className="btn-primary" disabled={ld}>{ld?<><Sp/> Buscando...</>:"Buscar Agora"}</button></div>
+    {hist.length===0?<div style={{textAlign:"center",padding:40,color:"var(--text-sec)"}}>Nenhuma busca realizada. Clique em "Buscar Agora" para verificar atualizações.</div>
+    :<div style={{display:"flex",flexDirection:"column",gap:10}}>{hist.map((h,i)=><div key={i} className="cd" style={{padding:14}}><div style={{fontSize:11,color:"var(--text-sec)",marginBottom:8}}>{h.data}</div><div style={{fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{h.texto}</div></div>)}</div>}
+  </div>;
 }
 
 ReactDOM.render(<ErrorBoundary><App/></ErrorBoundary>,document.getElementById("root"));
